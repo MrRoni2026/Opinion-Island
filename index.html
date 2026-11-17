@@ -1,0 +1,915 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Opinion Island</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Lexend:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: one winding trail map. Each stage opens a hub of three steps (learn, simulate, quiz) as single-column cards, max 760px. */
+:root{
+  --bg:#e8f2ec; --surface:#ffffff; --surface2:#f1f8f4; --ink:#0f2a26; --muted:#4a6761; --line:#c9ddd3;
+  --primary:#0b6e63; --on-primary:#ffffff; --sun:#ffb400; --on-sun:#2a1d00;
+  --good:#17803d; --good-bg:#dff5e5; --bad:#c62828; --bad-bg:#fde3e1; --part-bg:#fff1cf;
+  --c1:#12804a; --c2:#2166b8; --c3:#6a3fc0; --c4:#c2570a; --c5:#f2b705;
+  --sea:#bfe3ee; --land:#d3eab9; --land2:#b7dc94; --trail:#fff9e6; --trailline:#d9a63c; --river:#5cb8e6; --lock:#8a9a95;
+  --paper:#fffef9; --paper-ink:#1b2b3a; --gold:#d79b00;
+  --f-display:'Baloo 2','Trebuchet MS',system-ui,sans-serif; --f-body:'Lexend',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0a1a17; --surface:#12302b; --surface2:#0f2824; --ink:#e7f5ef; --muted:#9bbdb4; --line:#25473f;
+    --primary:#3ec1b0; --on-primary:#04201c; --good:#5fd68a; --good-bg:#123b25; --bad:#ff8a80; --bad-bg:#4a1a18; --part-bg:#4a3a10;
+    --sea:#0f3340; --land:#1f4a35; --land2:#2a6045; --trail:#d8cfa4; --trailline:#a88224; --river:#2a7fb0; --lock:#4a5f59;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0a1a17; --surface:#12302b; --surface2:#0f2824; --ink:#e7f5ef; --muted:#9bbdb4; --line:#25473f;
+  --primary:#3ec1b0; --on-primary:#04201c; --good:#5fd68a; --good-bg:#123b25; --bad:#ff8a80; --bad-bg:#4a1a18; --part-bg:#4a3a10;
+  --sea:#0f3340; --land:#1f4a35; --land2:#2a6045; --trail:#d8cfa4; --trailline:#a88224; --river:#2a7fb0; --lock:#4a5f59;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;min-height:100vh}
+h1,h2,h3{font-family:var(--f-display);font-weight:800;line-height:1.1;margin:0;text-wrap:balance}
+h1{font-size:clamp(30px,7vw,46px)} h2{font-size:clamp(22px,5vw,28px)} h3{font-size:18px}
+p{margin:0 0 10px} .muted{color:var(--muted)}
+button{font-family:inherit;font-size:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+mark{background:var(--sun);color:var(--on-sun);border-radius:4px;padding:0 4px;font-weight:500}
+
+/* top bar */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+.hud{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:2px solid var(--line)}
+.hud-in{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:8px;padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px))}
+.brand{font-family:var(--f-display);font-weight:800;font-size:20px;display:flex;align-items:center;gap:8px;margin-right:auto;min-width:0}
+.brand span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pillstat{display:flex;align-items:center;gap:5px;font-weight:600;font-size:14px;background:var(--surface2);border:2px solid var(--line);border-radius:99px;padding:4px 10px;white-space:nowrap}
+.iconbtn{min-width:40px;height:40px;padding:0 10px;border-radius:12px;border:2px solid var(--line);background:var(--surface);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:600;font-size:14px}
+.iconbtn:hover{border-color:var(--primary)}
+
+.main{max-width:760px;margin:0 auto;padding-block:18px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* shared parts */
+.card{background:var(--surface);border:2px solid var(--line);border-radius:18px;padding:16px}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--primary);color:var(--on-primary);border:0;border-radius:14px;padding:12px 20px;font-weight:600;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.28);transition:transform .08s}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.28)}
+.btn.sun{background:var(--sun);color:var(--on-sun)}
+.btn.ghost{background:var(--surface);color:var(--ink);border:2px solid var(--line);box-shadow:none}
+.btn.sm{padding:7px 12px;font-size:14px;border-radius:11px}
+.btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.stack{display:grid;gap:14px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--line);background:var(--surface);border-radius:99px;padding:4px 12px;font-size:14px;font-weight:500}
+.tip{display:grid;gap:4px;background:var(--part-bg);border-radius:14px;padding:10px 14px;font-size:15px}
+.tip b{font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.bar{height:12px;background:var(--line);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--st,var(--primary));border-radius:inherit;transition:width .3s}
+.backbar{margin-bottom:12px}
+
+/* welcome */
+.hero{display:grid;gap:16px}
+.hero h1{color:var(--ink)}
+.hero .sub{font-size:18px;color:var(--muted);margin:0}
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0;padding:0;list-style:none}
+.how li{background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:10px 12px;display:grid;gap:2px;font-size:14px}
+.how b{font-family:var(--f-display);font-size:18px}
+.field{display:grid;gap:6px}
+.field label{font-weight:600;font-size:14px}
+.field input{font:inherit;padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:var(--surface);color:var(--ink);width:100%}
+.field input:focus{outline:3px solid var(--sun);border-color:var(--primary)}
+.form{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+@media (max-width:480px){.form{grid-template-columns:1fr}}
+.credit{font-size:13px;color:var(--muted);text-align:center;margin-top:8px}
+
+/* scenes */
+.scene{position:relative;border-radius:18px;overflow:hidden;border:2px solid var(--line);margin:0 0 14px;isolation:isolate}
+.scbg{position:absolute;inset:0;z-index:-1}.scbg svg{display:block;width:100%;height:100%}
+.scfg{display:flex;gap:10px;justify-content:space-between;padding:12px 12px 4px;min-height:236px}
+.scp{flex:1 1 0;min-width:0;display:flex;flex-direction:column;justify-content:space-between;gap:8px}
+.scp.l{align-items:flex-start}.scp.r{align-items:flex-end}
+.bub{position:relative;background:#fff;color:#14231f;padding:8px 11px;border-radius:14px;font-size:13px;line-height:1.35;box-shadow:0 2px 0 rgba(0,0,0,.18);max-width:100%}
+.bub::after{content:"";position:absolute;bottom:-7px;border:7px solid transparent;border-top-color:#fff;border-bottom:0}
+.scp.l .bub::after{left:26px}.scp.r .bub::after{right:26px}
+.ch{width:78px;height:auto;display:block;flex:none}
+
+/* map */
+.greet{margin-bottom:14px;display:grid;gap:6px}
+.mapwrap{max-width:520px;margin:0 auto;border-radius:22px;overflow:hidden;border:3px solid var(--line)}
+.map{display:block;width:100%;height:auto}
+.node{cursor:pointer}
+.node:focus-visible{outline:none}.node:focus-visible circle.ring{stroke:var(--sun);stroke-width:5}
+.node.locked{cursor:not-allowed}
+.node .lbl{paint-order:stroke;stroke:var(--land);stroke-width:4px;stroke-linejoin:round}
+.node.cur .pulse{animation:pulse 1.6s ease-out infinite;transform-origin:center;transform-box:fill-box}
+.pin{animation:bob 1.2s ease-in-out infinite}
+@keyframes pulse{0%{opacity:.7;transform:scale(1)}100%{opacity:0;transform:scale(1.9)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+
+/* hub */
+.hubhead{display:grid;gap:6px;margin-bottom:14px}
+.hubhead .eyebrow{color:var(--st)}
+.steps{display:grid;gap:10px}
+.step{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;text-align:left;width:100%;background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:12px 14px;cursor:pointer}
+.step:hover{border-color:var(--st)}
+.step .sn{width:40px;height:40px;border-radius:50%;background:var(--st);color:var(--on-st);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:20px}
+.step b{display:block;font-size:17px}.step small{color:var(--muted);font-size:13px}
+.step .tg{font-size:12px;font-weight:600;border-radius:99px;padding:3px 10px;background:var(--surface2);border:2px solid var(--line);white-space:nowrap}
+.step.done .tg{background:var(--good-bg);color:var(--good);border-color:var(--good)}
+.step.lock{opacity:.7;cursor:not-allowed}
+
+/* learning */
+.dots{display:flex;gap:6px;margin-bottom:12px}
+.dots i{flex:1;height:8px;border-radius:99px;background:var(--line)}.dots i.on{background:var(--st)}
+.lbody{display:grid;gap:12px;margin:12px 0}
+.nav{display:flex;justify-content:space-between;gap:10px;margin-top:6px}
+.exl{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.exl li{display:grid;gap:2px;background:var(--surface2);border:2px solid var(--line);border-radius:12px;padding:9px 12px}
+.exl b{font-weight:600}.exl small{color:var(--muted);font-size:13.5px}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.duo-c{display:grid;gap:2px;border:2px solid var(--b);background:color-mix(in srgb,var(--b) 12%,var(--surface));border-radius:14px;padding:10px 12px;font-size:14px}
+.duo-c b{font-family:var(--f-display);font-size:18px}
+@media (max-width:420px){.duo{grid-template-columns:1fr}}
+.icons{display:flex;gap:14px;align-items:center}
+.ladder{display:grid;gap:8px}
+.lad{display:grid;grid-template-columns:14px 1fr;gap:10px;align-items:start;background:var(--surface2);border:2px solid var(--line);border-radius:12px;padding:9px 12px}
+.lad i{width:14px;height:14px;border-radius:50%;margin-top:5px;background:var(--b)}
+.lad b{display:block;font-size:14px}.lad span{font-size:15px}
+.ann{display:grid;gap:10px}
+.ann .blk{border-radius:14px;padding:10px 12px;border:2px solid var(--b);background:color-mix(in srgb,var(--b) 11%,var(--surface))}
+.ann .lab{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--b);padding:2px 10px;border-radius:99px;margin-bottom:6px}
+.ann p{margin:0;font-size:15.5px}
+.ann h3{font-size:19px}
+.cmp{display:grid;gap:10px}
+.cmphead,.cmprow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cmphead span{font-family:var(--f-display);font-weight:800;font-size:17px;text-align:center;border-radius:12px;padding:6px;color:#fff}
+.cmprow .cl{grid-column:1/-1;font-size:12px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.cmprow div:not(.cl){background:var(--surface2);border:2px solid var(--line);border-radius:12px;padding:8px 10px;font-size:14.5px}
+.fo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fo>div{border:2px solid var(--b);background:color-mix(in srgb,var(--b) 11%,var(--surface));border-radius:14px;padding:10px 12px;font-size:14.5px;display:grid;gap:4px;align-content:start}
+.fo b{font-family:var(--f-display);font-size:19px}
+@media (max-width:420px){.fo{grid-template-columns:1fr}}
+.svgfig{border-radius:16px;overflow:hidden;border:2px solid var(--line)}.svgfig svg{display:block;width:100%;height:auto}
+
+/* questions */
+.qbox{display:grid;gap:12px}
+.qp{font-size:18px;font-weight:500;margin:0;line-height:1.45}
+.pass{background:var(--surface2);border:2px solid var(--line);border-radius:14px;padding:12px 14px;font-size:15.5px}
+.opts{display:grid;gap:10px}
+.opt{display:flex;gap:12px;align-items:flex-start;text-align:left;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:12px 14px;cursor:pointer;line-height:1.4}
+.opt .ol{flex:none;width:26px;height:26px;border-radius:50%;background:var(--surface2);border:2px solid var(--line);display:grid;place-items:center;font-size:13px;font-weight:600}
+.opt:hover:not(:disabled){border-color:var(--primary)}
+.opt.ok{background:var(--good-bg);border-color:var(--good)}.opt.bad{background:var(--bad-bg);border-color:var(--bad)}.opt.dim{opacity:.55}
+.opt:disabled{cursor:default}
+.gap{display:inline-block;min-width:3.2em;border-bottom:3px solid var(--primary);text-align:center;font-weight:600}
+.gap.filled{color:var(--good)}
+.fb{border-radius:14px;padding:11px 14px;font-size:15.5px}
+.fb.good{background:var(--good-bg);border:2px solid var(--good)}.fb.bad{background:var(--bad-bg);border:2px solid var(--bad)}.fb.part{background:var(--part-bg);border:2px solid var(--sun)}
+.fb .ex{display:block;margin-top:4px;color:var(--ink)}
+.qact{display:flex;gap:10px;flex-wrap:wrap}
+.slots{display:grid;gap:8px}
+.slot{display:grid;gap:2px;text-align:left;border:2px dashed var(--line);background:var(--surface2);border-radius:14px;padding:10px 12px;min-height:62px;cursor:pointer;font-size:14.5px}
+.slot small{font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-size:11.5px}
+.slot.filled{border-style:solid;border-color:var(--primary);background:var(--surface)}
+.slot.ok{border-color:var(--good);background:var(--good-bg)}.slot.bad{border-color:var(--bad);background:var(--bad-bg)}
+.pool{display:flex;flex-wrap:wrap;gap:8px}
+.tok{border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 12px;cursor:pointer;font-weight:500}
+.tok:hover{border-color:var(--primary)}
+.tok.blk{text-align:left;font-weight:400;font-size:14.5px;flex:1 1 100%;line-height:1.45}
+.ansline{display:flex;flex-wrap:wrap;gap:8px;min-height:62px;align-items:center;border:2px dashed var(--line);background:var(--surface2);border-radius:14px;padding:10px}
+.ansline.ok{border-color:var(--good);background:var(--good-bg)}.ansline.bad{border-color:var(--bad);background:var(--bad-bg)}
+.ansline .ph{color:var(--muted);font-size:14px}
+.tok.in{border-color:var(--primary)}
+.crow{border:2px solid var(--line);border-radius:14px;padding:10px 12px;display:grid;gap:8px;background:var(--surface)}
+.crow p{margin:0;font-size:16px}
+.crow.ok{border-color:var(--good);background:var(--good-bg)}.crow.bad{border-color:var(--bad);background:var(--bad-bg)}
+.crow .ans{color:var(--bad);font-weight:600}
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pill{border:2px solid var(--line);background:var(--surface2);border-radius:99px;padding:5px 14px;font-weight:500;font-size:14.5px;cursor:pointer}
+.pill.on{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.pill:disabled{cursor:default}
+.mt{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mcol{display:grid;gap:8px;align-content:start;min-width:0}
+.mi{display:flex;gap:8px;align-items:flex-start;text-align:left;border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 10px;cursor:pointer;font-size:14.5px;line-height:1.4}
+.mi .bd{flex:none;width:24px;height:24px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-size:13px;font-weight:600}
+.mi .bd.ghost{background:transparent;border:2px dashed var(--line)}
+.mi.sel{border-color:var(--sun);box-shadow:0 0 0 3px color-mix(in srgb,var(--sun) 45%,transparent)}
+.mi.used.r{border-color:var(--primary)}
+.mi.ok{background:var(--good-bg);border-color:var(--good)}.mi.bad{background:var(--bad-bg);border-color:var(--bad)}
+@media (max-width:420px){.mt{gap:6px}.mi{font-size:13.5px;padding:8px}}
+.qhead{display:grid;gap:6px;margin-bottom:14px}
+.qhead .row{justify-content:space-between;font-size:14px;font-weight:600}
+
+/* results and certificate */
+.result{text-align:center;display:grid;gap:12px;justify-items:center}
+.big{font-family:var(--f-display);font-weight:800;font-size:72px;line-height:1;color:var(--st,var(--primary))}
+.stars{display:flex;gap:6px}
+.cert{position:relative;background:var(--paper);color:var(--paper-ink);border:3px solid var(--gold);border-radius:6px;padding:10px;box-shadow:0 8px 0 rgba(0,0,0,.18)}
+.cert-in{border:2px solid var(--gold);padding:22px 16px 18px;display:grid;gap:10px;justify-items:center;text-align:center;background:var(--paper)}
+.cert .kick{font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:#6b5a1a}
+.cert h2{font-size:clamp(28px,7vw,42px);color:var(--paper-ink)}
+.cert .nm{font-family:var(--f-display);font-weight:800;font-size:clamp(28px,8vw,44px);border-bottom:3px solid var(--gold);padding:0 14px;line-height:1.2;overflow-wrap:anywhere}
+.cert p{margin:0;font-size:15px;max-width:46ch}
+.cert .scores{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;width:100%;margin-top:4px}
+.cert .scores div{border:1.5px solid #d8c78a;border-radius:10px;padding:6px 8px;font-size:12.5px;display:grid;gap:2px;justify-items:center;background:#fffbea}
+.cert .sign{display:flex;justify-content:space-between;align-items:flex-end;width:100%;gap:12px;margin-top:8px;font-size:13px}
+.cert .sign div{display:grid;gap:2px;text-align:center}
+.cert .line{border-top:1.5px solid var(--paper-ink);padding-top:4px;min-width:150px}
+.cert .sig{font-family:var(--f-display);font-weight:700;font-size:22px;color:#12467a}
+.cert svg.seal{width:74px;height:74px}
+@media (max-width:420px){.cert .sign{flex-direction:column;align-items:center}}
+
+/* toast and confetti */
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,30px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:500;font-size:14.5px;opacity:0;pointer-events:none;transition:.25s;z-index:40;max-width:calc(100% - 32px);text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#conf{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:35}
+.cf{position:absolute;top:-14px;width:10px;height:14px;border-radius:2px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+@media (prefers-reduced-motion:reduce){.pin,.node.cur .pulse{animation:none}.cf{display:none}.btn,.bar i,#toast{transition:none}}
+</style>
+
+<header class="hud"><div class="hud-in">
+  <div class="brand"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="11" style="fill:var(--primary)"/><path d="M13 5l3 8-3 8-3-8z" style="fill:var(--sun)"/><circle cx="13" cy="13" r="2" style="fill:var(--surface)"/></svg><span>Opinion Island</span></div>
+  <span class="pillstat" id="hstars" hidden></span>
+  <button class="iconbtn" id="hmap" type="button" hidden>Peta</button>
+  <button class="iconbtn" id="hsnd" type="button" aria-label="Suara"></button>
+</div></header>
+<main class="main" id="app"></main>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="conf" aria-hidden="true"></div>
+
+<script>
+(function(){
+'use strict';
+const KEY='opinionIsland.v1', PASS=60;
+const $=(s,r)=>(r||document).querySelector(s);
+const $$=(s,r)=>[...(r||document).querySelectorAll(s)];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const app=$('#app');
+
+/* ---------- rekap nilai ke Google Sheet (lewat Google Form) ---------- */
+// Tempel tautan "Dapatkan link isian otomatis" dari Google Form di sini.
+const FORM_LINK='https://docs.google.com/forms/d/e/1FAIpQLSdXQVDC40XZSGdj7R_ixJJnO_i8wW7oODt-FhIRwODy_oyuYw/viewform?usp=pp_url&entry.1992908008=NAMA&entry.1974876558=KELAS&entry.1638291447=M1&entry.157691249=M2&entry.1793684643=M3&entry.1257417447=M4&entry.876657446=M5&entry.1132270305=AKHIR&entry.212474716=PREDIKAT&entry.840243164=STATUS';
+const FORM_TOKENS=['NAMA','KELAS','M1','M2','M3','M4','M5','AKHIR','PREDIKAT','STATUS'];
+const FM=(()=>{
+  try{
+    if(!FORM_LINK)return null;
+    const u=new URL(FORM_LINK),m={};
+    u.searchParams.forEach((v,k)=>{if(/^entry\.\d+$/.test(k)&&FORM_TOKENS.includes(v))m[v]=k;});
+    return FORM_TOKENS.every(t=>m[t])?{base:u.origin+u.pathname,m}:null;
+  }catch(e){return null;}
+})();
+const predOf=a=>a>=90?'Sangat Memuaskan (Excellent)':a>=80?'Memuaskan (Very Good)':a>=70?'Baik (Good)':'Cukup (Passed)';
+function recap(){
+  const b=STAGES.map(g=>st(g.id).best||0),n=STAGES.filter(g=>st(g.id).passed).length,avg=Math.round(b.reduce((x,y)=>x+y,0)/b.length);
+  return {NAMA:S.name,KELAS:S.cls||'XI',M1:b[0],M2:b[1],M3:b[2],M4:b[3],M5:b[4],AKHIR:avg,PREDIKAT:n===5?predOf(avg):'-',STATUS:n===5?'Selesai':'Belum selesai ('+n+'/5 misi)'};
+}
+function formUrl(){
+  if(!FM)return '';
+  const r=recap();
+  return FM.base+'?usp=pp_url&'+FORM_TOKENS.map(t=>encodeURIComponent(FM.m[t])+'='+encodeURIComponent(r[t])).join('&');
+}
+function recapText(){
+  const r=recap();
+  return `Nama: ${r.NAMA}\nKelas: ${r.KELAS}\n`+STAGES.map((g,i)=>`Misi ${i+1} (${g.name}): ${r['M'+(i+1)]}`).join('\n')+`\nNilai akhir: ${r.AKHIR} (${r.PREDIKAT})`;
+}
+function sendCard(){
+  const n=STAGES.filter(g=>st(g.id).passed).length;
+  return `<div class="card stack"><div><p class="eyebrow">Rekap nilai</p><h2>Kirim nilai ke guru</h2></div>
+   <p style="margin:0">${n===5?'Semua misi selesai.':`Misi selesai: ${n}/5.`} Ketuk tombol, lalu tekan <b>Kirim</b> di formulir yang terbuka. Nilaimu langsung masuk ke Google Sheet guru.</p>
+   <div class="row"><a class="btn sun" id="sendlink" style="text-decoration:none" href="${esc(formUrl())}" target="_blank" rel="noopener">Kirim nilai ke guru</a></div>
+   <p class="muted" style="margin:0;font-size:14px">Berhasil jika muncul tulisan "Jawaban Anda telah direkam". Kamu boleh mengirim lagi setelah nilaimu bertambah.</p></div>`;
+}
+function copyCard(){
+  return `<div class="card stack"><div><p class="eyebrow">Rekap nilai</p><h2>Salin nilaimu</h2></div><textarea id="rtext" readonly rows="8" style="font:inherit;font-size:14px;padding:10px 12px;border-radius:12px;border:2px solid var(--line);background:var(--surface);color:var(--ink);width:100%">${esc(recapText())}</textarea><div class="row"><button class="btn" id="cpy" type="button">Salin teks</button></div></div>`;
+}
+function refreshRecap(){const a=$('#sendlink');if(a)a.href=formUrl();const t=$('#rtext');if(t)t.value=recapText();}
+function copyRecap(){
+  const t=recapText(),ta=$('#rtext');
+  const fb=()=>{if(ta){ta.focus();ta.select();}toast('Teks dipilih. Salin secara manual.');};
+  try{navigator.clipboard.writeText(t).then(()=>toast('Nilai disalin.'),fb);}catch(e){fb();}
+}
+
+/* ---------- state ---------- */
+function def(){return {name:'',cls:'',snd:true,st:{}};}
+function load(){try{const r=localStorage.getItem(KEY);if(r)return Object.assign(def(),JSON.parse(r));}catch(e){}return def();}
+let S=load();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function st(id){return S.st[id]||(S.st[id]={mat:false,sim:false,simScore:0,best:0,passed:false});}
+const starsOf=p=>p>=90?3:p>=75?2:p>=60?1:0;
+
+/* ---------- sound, toast, confetti ---------- */
+let ac;
+function sfx(k){
+  if(!S.snd)return;
+  try{
+    ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+    const seq={ok:[[660,.09],[880,.13]],bad:[[220,.18]],win:[[523,.1],[659,.1],[784,.1],[1047,.24]]}[k];
+    let t=ac.currentTime;
+    seq.forEach(([f,d])=>{const o=ac.createOscillator(),g=ac.createGain();o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.12,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+d+.02);t+=d;});
+  }catch(e){}
+}
+let tt;
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),2600);}
+function confetti(){
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const box=$('#conf'),cols=['#ffb400','#12804a','#2166b8','#c2570a','#6a3fc0','#e0457b'];
+  for(let i=0;i<34;i++){const s=document.createElement('span');s.className='cf';s.style.left=Math.random()*100+'%';s.style.background=cols[i%cols.length];s.style.animationDuration=(2+Math.random()*2)+'s';s.style.animationDelay=(Math.random()*.6)+'s';box.appendChild(s);}
+  setTimeout(()=>{box.innerHTML='';},4800);
+}
+
+/* ---------- art ---------- */
+const starPts=(cx,cy,r)=>{const p=[];for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*.45:r;p.push((cx+rr*Math.cos(a)).toFixed(1)+','+(cy+rr*Math.sin(a)).toFixed(1));}return p.join(' ');};
+const starSvg=(sz,on)=>`<svg width="${sz}" height="${sz}" viewBox="0 0 20 20" aria-hidden="true"><polygon points="${starPts(10,10.5,9.5)}" style="fill:${on?'var(--sun)':'var(--line)'};stroke:${on?'#c98f00':'var(--muted)'};stroke-width:1"/></svg>`;
+const KIDS={
+  dimas:{s:'#c68a5b',c:'#d32f2f',h:'#1b1b1b'},
+  rina:{s:'#e2ab7e',c:'#2166b8',h:'#1d4f91',hj:1},
+  bima:{s:'#a8693f',c:'#f2b705',h:'#111111'},
+  ayu:{s:'#e8b48a',c:'#7a4fd1',h:'#5b2fb0',hj:1},
+  sinta:{s:'#d99c6e',c:'#12804a',h:'#0e6b3d',hj:1}
+};
+const BALL=`<circle cx="66" cy="108" r="9" fill="#fff" stroke="#222" stroke-width="2"/><path d="M66 102l5 4-2 6h-6l-2-6z" fill="#222"/>`;
+const GUITAR=`<g transform="rotate(-25 62 84)"><rect x="60" y="40" width="4" height="40" fill="#5a3a1c"/><ellipse cx="62" cy="90" rx="13" ry="11" fill="#c2702d"/><circle cx="62" cy="90" r="3.6" fill="#3b2412"/></g>`;
+function person(k,ex){
+  const o=KIDS[k];
+  const face=o.hj
+    ?`<path d="M17 40Q17 8 40 8Q63 8 63 40Q63 60 54 68L26 68Q17 60 17 40Z" fill="${o.h}"/><ellipse cx="40" cy="39" rx="14.5" ry="17" fill="${o.s}"/>`
+    :`<circle cx="40" cy="36" r="20" fill="${o.s}"/><path d="M20 34Q22 12 40 12Q58 12 60 34Q52 22 40 24Q28 22 20 34Z" fill="${o.h}"/>`;
+  const ey=o.hj?39:38, my=o.hj?47:47;
+  return `<svg class="ch" viewBox="0 0 80 120" aria-hidden="true"><ellipse cx="40" cy="114" rx="22" ry="5" fill="rgba(0,0,0,.2)"/><rect x="28" y="96" width="9" height="16" rx="4" fill="#2b3a55"/><rect x="43" y="96" width="9" height="16" rx="4" fill="#2b3a55"/><rect x="22" y="58" width="36" height="42" rx="14" fill="${o.c}"/>${face}<circle cx="33.5" cy="${ey}" r="2.2" fill="#1d1d1d"/><circle cx="46.5" cy="${ey}" r="2.2" fill="#1d1d1d"/><path d="M34 ${my}Q40 ${my+5} 46 ${my}" stroke="#1d1d1d" stroke-width="2.2" fill="none" stroke-linecap="round"/>${ex||''}</svg>`;
+}
+const SV=(b)=>`<svg viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${b}</svg>`;
+const BG={
+  field:SV(`<rect width="320" height="200" fill="#9bd7f2"/><circle cx="268" cy="34" r="15" fill="#ffd54a"/><rect y="92" width="320" height="108" fill="#3fa34d"/><g fill="#379445"><rect y="92" width="320" height="16"/><rect y="124" width="320" height="16"/><rect y="156" width="320" height="16"/></g><path d="M22 92V56h62V92" stroke="#fff" stroke-width="3" fill="none"/><ellipse cx="170" cy="152" rx="76" ry="20" stroke="#fff" stroke-width="2.5" fill="none"/>`),
+  stage:SV(`<rect width="320" height="200" fill="#2a1b4d"/><path d="M70 0L20 200H130Z" fill="#fff" opacity=".12"/><path d="M250 0L190 200H310Z" fill="#fff" opacity=".12"/><rect y="152" width="320" height="48" fill="#3d2a6e"/><rect x="12" y="92" width="32" height="60" rx="4" fill="#150d2b"/><circle cx="28" cy="110" r="9" fill="#3d2a6e"/><circle cx="28" cy="134" r="6" fill="#3d2a6e"/><rect x="276" y="92" width="32" height="60" rx="4" fill="#150d2b"/><circle cx="292" cy="110" r="9" fill="#3d2a6e"/><circle cx="292" cy="134" r="6" fill="#3d2a6e"/><g fill="#ffb400"><circle cx="150" cy="22" r="3"/><circle cx="110" cy="48" r="2"/><circle cx="214" cy="40" r="2.5"/></g>`),
+  class:SV(`<rect width="320" height="200" fill="#dbe8ee"/><rect y="150" width="320" height="50" fill="#b88b5a"/><rect x="60" y="26" width="200" height="94" rx="4" fill="#2f5d4a" stroke="#8a5a2b" stroke-width="6"/><path d="M82 58h70M82 78h120M82 98h54" stroke="#e8f0ec" stroke-width="3" stroke-linecap="round" opacity=".8"/>`),
+  village:SV(`<rect width="320" height="200" fill="#a9def0"/><circle cx="48" cy="34" r="16" fill="#ffd54a"/><path d="M0 120Q80 70 170 112T320 96V200H0Z" fill="#98d68f"/><path d="M0 150Q100 112 200 146T320 130V200H0Z" fill="#6fbf6a"/><g stroke="#58a85c" stroke-width="3" fill="none"><path d="M0 168Q100 140 200 166T320 154"/><path d="M0 184Q100 160 200 182T320 172"/></g><rect x="196" y="96" width="48" height="34" fill="#e8d3a8"/><path d="M188 98L220 68L252 98Z" fill="#b5763a"/><rect x="214" y="110" width="12" height="20" fill="#7a4a24"/><rect x="288" y="70" width="5" height="62" fill="#7a4a24"/><path d="M290 72Q262 56 252 74M290 72Q318 56 316 78M290 72Q280 50 262 48" stroke="#2f9e57" stroke-width="5" fill="none" stroke-linecap="round"/>`),
+  river:SV(`<rect width="320" height="200" fill="#a9def0"/><circle cx="270" cy="32" r="15" fill="#ffd54a"/><path d="M0 104Q90 64 180 100T320 84V200H0Z" fill="#8fd08a"/><path d="M-10 150Q90 120 180 150T330 134" stroke="#4da8d8" stroke-width="40" fill="none"/><path d="M-10 150Q90 120 180 150T330 134" stroke="#7cc6ea" stroke-width="30" fill="none"/><g fill="#6a5a4a"><rect x="60" y="136" width="9" height="13" rx="2"/><rect x="150" y="146" width="12" height="8" rx="2"/><rect x="236" y="128" width="8" height="12" rx="2"/></g><rect x="20" y="64" width="40" height="30" fill="#e8d3a8"/><path d="M14 66L40 42L66 66Z" fill="#b5763a"/>`)
+};
+function sc(bg,L,R){
+  const side=(p,c)=>p?`<div class="scp ${c}">${p.say?`<div class="bub">${p.say}</div>`:'<span></span>'}${person(p.k,p.ex)}</div>`:'';
+  return `<div class="scene"><div class="scbg">${BG[bg]}</div><div class="scfg">${side(L,'l')}${side(R,'r')}</div></div>`;
+}
+const tip=h=>`<div class="tip"><b>Tips</b><div>${h}</div></div>`;
+const exl=a=>`<ul class="exl">${a.map(x=>`<li><b>${x[0]}</b><small>${x[1]}</small></li>`).join('')}</ul>`;
+const checkIc=`<svg width="54" height="54" viewBox="0 0 54 54" aria-hidden="true"><circle cx="27" cy="27" r="25" fill="#17803d"/><path d="M15 28l8 8 16-17" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const crossIc=`<svg width="54" height="54" viewBox="0 0 54 54" aria-hidden="true"><circle cx="27" cy="27" r="25" fill="#c62828"/><path d="M18 18l18 18M36 18L18 36" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/></svg>`;
+const megaIc=`<svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><path d="M8 26h12l22-12v36L20 38H8z" fill="#c2570a"/><rect x="12" y="38" width="9" height="15" rx="2" fill="#7a3506"/><path d="M48 24q6 8 0 16M54 17q10 15 0 30" stroke="#ffb400" stroke-width="3.5" fill="none" stroke-linecap="round"/></svg>`;
+const lensIc=`<svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><circle cx="27" cy="27" r="17" fill="#cfe6fb" stroke="#6a3fc0" stroke-width="6"/><path d="M40 40l16 16" stroke="#6a3fc0" stroke-width="8" stroke-linecap="round"/></svg>`;
+const mountainSvg=`<div class="svgfig"><svg viewBox="0 0 320 200" role="img" aria-label="Gunung dengan tiga pos: Thesis, Arguments, Reiteration"><rect width="320" height="200" fill="#cfe9f7"/><circle cx="270" cy="34" r="14" fill="#ffd54a"/><polygon points="10,190 150,26 310,190" fill="#7a5cc9"/><polygon points="150,26 124,60 140,54 152,68 164,54 180,60" fill="#fff"/><path d="M52 176Q80 150 100 120T146 56" stroke="#fff" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round" fill="none"/><g font-family="Lexend,sans-serif" font-size="12" font-weight="600" fill="#fff"><circle cx="62" cy="164" r="7" fill="#ffb400"/><rect x="74" y="152" width="62" height="22" rx="8" fill="#2a1b4d"/><text x="82" y="167">Thesis</text><circle cx="104" cy="118" r="7" fill="#ffb400"/><rect x="116" y="106" width="82" height="22" rx="8" fill="#2a1b4d"/><text x="124" y="121">Arguments</text><circle cx="146" cy="68" r="7" fill="#ffb400"/><rect x="158" y="70" width="84" height="22" rx="8" fill="#2a1b4d"/><text x="166" y="85">Reiteration</text></g></svg></div>`;
+const towerSvg=`<div class="svgfig"><svg viewBox="0 0 320 210" role="img" aria-label="Menara tiga lantai: Thesis, Arguments, Recommendation"><rect width="320" height="210" fill="#ffe7c9"/><rect y="186" width="320" height="24" fill="#8fd08a"/><rect x="60" y="140" width="200" height="46" rx="4" fill="#c2570a"/><rect x="75" y="96" width="170" height="44" rx="4" fill="#d9772e"/><rect x="90" y="52" width="140" height="44" rx="4" fill="#e89a55"/><polygon points="84,52 160,20 236,52" fill="#7a3506"/><line x1="160" y1="20" x2="160" y2="4" stroke="#444" stroke-width="2"/><polygon points="160,4 182,10 160,16" fill="#ffb400"/><g font-family="Lexend,sans-serif" font-size="13" font-weight="600" fill="#fff" text-anchor="middle"><text x="160" y="168">1 Thesis</text><text x="160" y="124">2 Arguments</text><text x="160" y="80" fill="#3b1c04">3 Recommendation</text></g></svg></div>`;
+
+/* ---------- content ---------- */
+const STAGES=[
+{id:'s1',n:1,name:'Lapangan Opini',en:'Asking & Giving Opinion',
+ desc:`Di lapangan ini kamu belajar meminta dan memberi pendapat dalam percakapan sehari-hari.`,
+ hero:()=>sc('field',{k:'dimas',say:`What do you think about our new football field?`,ex:BALL},{k:'rina',say:`In my opinion, it is wonderful!`}),
+ learn:[
+  {t:'Apa itu opinion?',h:()=>`${sc('field',{k:'dimas',say:`What do you think about our new football field?`,ex:BALL},{k:'rina',say:`In my opinion, it is wonderful. The grass is green and soft!`})}
+   <p><b>Opinion</b> artinya <b>pendapat</b>, yaitu apa yang kamu pikirkan atau rasakan tentang sesuatu. Dalam percakapan ada dua kegiatan utama:</p>
+   <div class="duo"><div class="duo-c" style="--b:var(--c2)"><b>Asking opinion</b><span>meminta pendapat orang lain</span></div><div class="duo-c" style="--b:var(--c1)"><b>Giving opinion</b><span>menyampaikan pendapatmu sendiri</span></div></div>
+   ${tip(`Pendapat boleh berbeda-beda. Supaya kuat, tambahkan <mark>alasan</mark> dengan kata <mark>because</mark>.`)}`},
+  {t:'Asking for opinion',h:()=>`${sc('stage',{k:'sinta',say:`What do you think about dangdut music?`},{k:'bima',say:`I think it is fun to dance to!`,ex:GUITAR})}
+   <p>Gunakan ungkapan ini untuk <b>meminta pendapat</b>:</p>
+   ${exl([[`What do you think about ...?`,`Apa pendapatmu tentang ...?`],[`What's your opinion about ...?`,`Apa opinimu tentang ...?`],[`How do you feel about ...?`,`Bagaimana perasaanmu tentang ...?`],[`Do you think (that) ...?`,`Apakah menurutmu ...?`],[`How about you? / What about you?`,`Bagaimana denganmu?`]])}`},
+  {t:'Giving opinion',h:()=>`${sc('class',{k:'ayu',say:`How do you feel about online learning?`},{k:'dimas',say:`Personally, I think it is flexible, but sometimes the signal is bad.`})}
+   <p>Gunakan ungkapan ini untuk <b>memberi pendapat</b>:</p>
+   ${exl([[`In my opinion, ...`,`Menurut pendapat saya, ...`],[`I think / I believe / I feel (that) ...`,`Saya pikir / yakin / merasa bahwa ...`],[`From my point of view, ...`,`Dari sudut pandang saya, ...`],[`As far as I'm concerned, ...`,`Sejauh yang saya pikirkan, ...`],[`If you ask me, ...`,`Kalau kamu tanya saya, ...`],[`Personally, I think ...`,`Secara pribadi, saya pikir ...`]])}
+   ${tip(`Rumus mudah: <mark>Ungkapan opini</mark> + pendapat + <mark>because</mark> + alasan.<br>Contoh: <i>In my opinion, volleyball is great because it teaches teamwork.</i>`)}`},
+  {t:'Fact atau opinion?',h:()=>`<p>Jangan tertukar. <b>Fact</b> bisa dibuktikan benar. <b>Opinion</b> berisi penilaian pribadi.</p>
+   <div class="fo"><div style="--b:var(--c2)"><b>Fact</b><span>A football team has eleven players on the field.</span><span class="muted">Bisa dicek dan dibuktikan.</span></div><div style="--b:var(--c4)"><b>Opinion</b><span>Football is the most exciting sport.</span><span class="muted">Tiap orang bisa berbeda.</span></div></div>
+   <p>Kata penanda opini: <mark>best</mark> <mark>worst</mark> <mark>beautiful</mark> <mark>boring</mark> <mark>exciting</mark> <mark>should</mark> <mark>I think</mark></p>
+   ${tip(`Tanyakan pada dirimu: <i>Apakah kalimat ini bisa dibuktikan?</i> Jika ya, itu fact. Jika bergantung selera, itu opinion.`)}`}
+ ],
+ sim:{title:'Obrolan di Lapangan',intro:`Kamu sedang mengobrol dengan teman di lapangan sekolah. Pilih tanggapan Bahasa Inggris yang paling tepat di setiap situasi. Jawaban benar pada percobaan pertama memberi poin penuh.`,
+  steps:[
+   {t:'mcq',scene:sc('field',{k:'dimas',say:`What do you think about holding a football match for the village celebration?`,ex:BALL}),p:`Kamu setuju dan ingin <b>memberi pendapat</b>. Pilih jawaban terbaik.`,
+    o:[{t:`In my opinion, it is a great idea because the whole village can watch.`,fb:``},{t:`It is a football match.`,fb:`Kalimat ini hanya mengulang topik, belum memberi pendapat.`},{t:`What do you think?`,fb:`Ini meminta pendapat balik, bukan memberi pendapatmu.`},{t:`Yes, I do football.`,fb:`Kalimat ini tidak menjawab pertanyaan dan tata bahasanya kurang tepat.`}],a:0,
+    e:`Kamu memakai <mark>In my opinion</mark> dan memberi alasan dengan <mark>because</mark>.`},
+   {t:'mcq',scene:sc('stage',{k:'ayu',say:`Let's ask the school band to play music before the match!`,ex:GUITAR}),p:`Kamu ingin <b>meminta pendapat</b> temanmu tentang ide itu. Pilih kalimat yang tepat.`,
+    o:[{t:`How do you feel about the idea?`,fb:``},{t:`I believe the idea is good.`,fb:`Ini memberi pendapat, bukan meminta pendapat.`},{t:`From my point of view, the band is great.`,fb:`Ini juga memberi pendapat.`},{t:`Because the band is great.`,fb:`Ini hanya alasan, bukan pertanyaan.`}],a:0,
+    e:`<mark>How do you feel about ...?</mark> adalah ungkapan untuk meminta pendapat.`},
+   {t:'mcq',scene:sc('village',{k:'dimas',say:`Honestly, I think a match in the rainy season is risky. The field gets muddy.`}),p:`Sekarang giliranmu menanggapi dengan <b>pendapat lengkap beserta alasan</b>.`,
+    o:[{t:`From my point of view, we should hold it in the dry season because the field will be safe.`,fb:``},{t:`Muddy field.`,fb:`Ini hanya frasa pendek, tanpa ungkapan opini dan alasan.`},{t:`Do you think it is raining?`,fb:`Ini pertanyaan, bukan pendapat.`},{t:`Football is a sport.`,fb:`Ini sebuah fact, bukan opinion.`}],a:0,
+    e:`Pendapat yang baik: ungkapan opini + pendapat + alasan.`}
+  ]},
+ quiz:[
+  {t:'mcq',p:`Which expression is used to <b>ask</b> for someone's opinion?`,o:[`As far as I'm concerned, ...`,`What do you think about ...?`,`I strongly believe that ...`,`From my point of view, ...`],a:1,e:`<mark>What do you think about ...?</mark> meminta pendapat. Tiga lainnya dipakai untuk memberi pendapat.`},
+  {t:'tf',p:`Everyone must have the same opinion about a topic.`,a:1,e:`Opini bersifat pribadi, jadi setiap orang boleh berbeda.`},
+  {t:'classify',p:`Kelompokkan setiap kalimat: <b>Fact</b> atau <b>Opinion</b>?`,buckets:['Fact','Opinion'],items:[[`A football team has eleven players on the field.`,0],[`Dangdut is the most beautiful music in the world.`,1],[`A standard guitar has six strings.`,0],[`Running in the morning is boring.`,1]],e:`Fact bisa dibuktikan. Opinion memuat penilaian pribadi seperti <mark>most beautiful</mark> dan <mark>boring</mark>.`},
+  {t:'blank',p:`______ my point of view, learning English is very useful.`,o:[`In`,`On`,`From`,`At`],a:2,e:`Ungkapan yang benar adalah <mark>From my point of view</mark>.`},
+  {t:'order',p:`Susun kata menjadi pertanyaan meminta pendapat.`,k:[`What`,`do`,`you`,`think`,`about`,`the`,`match?`],e:`Urutan: What do you think about the match?`},
+  {t:'match',p:`Pasangkan pertanyaan dengan jawaban yang cocok.`,pairs:[[`What do you think about traditional music?`,`I think it is a valuable cultural heritage.`],[`How do you feel about online learning?`,`Personally, I find it flexible but tiring.`],[`Do you think students should exercise every day?`,`Yes, I believe it keeps us healthy.`]],e:`Setiap jawaban menjawab topik yang ditanyakan.`}
+ ]},
+
+{id:'s2',n:2,name:'Jembatan Setuju',en:'Agreement & Disagreement',
+ desc:`Seberangi jembatan ini dengan menanggapi pendapat orang lain: setuju, tidak setuju, dan sopan.`,
+ hero:()=>sc('stage',{k:'ayu',say:`Students should learn traditional music at school.`,ex:GUITAR},{k:'bima',say:`I couldn't agree more!`}),
+ learn:[
+  {t:'Setuju atau tidak setuju?',h:()=>`${sc('stage',{k:'ayu',say:`Listening to music helps me concentrate when I study.`,ex:GUITAR},{k:'bima',say:`I couldn't agree more! Music makes me calm.`})}
+   <p>Setelah seseorang memberi pendapat, kamu bisa menanggapinya dengan <b>agreement</b> (setuju) atau <b>disagreement</b> (tidak setuju).</p>
+   <div class="duo"><div class="duo-c" style="--b:var(--c1)"><span class="icons">${checkIc}<b>Agreement</b></span><span>menyatakan setuju</span></div><div class="duo-c" style="--b:var(--c4)"><span class="icons">${crossIc}<b>Disagreement</b></span><span>menyatakan tidak setuju</span></div></div>
+   ${tip(`Tidak setuju itu boleh. Yang penting <mark>sopan</mark> dan disertai <mark>alasan</mark>.`)}`},
+  {t:'Agreement',h:()=>`${sc('field',{k:'dimas',say:`Sports make us healthy.`,ex:BALL},{k:'rina',say:`Exactly! We feel more energetic.`})}
+   ${exl([[`Absolutely! / Exactly! / I couldn't agree more.`,`Sangat setuju (kuat)`],[`I agree with you. / You're right. / That's true.`,`Saya setuju denganmu. / Kamu benar.`],[`I think so too. / Me too. / So do I.`,`Saya juga berpikir begitu.`]])}
+   ${tip(`Rumus: <mark>I agree with you</mark> + <mark>because</mark> + alasan.<br>Contoh: <i>I agree with you because exercise keeps us fit.</i>`)}`},
+  {t:'Disagreement',h:()=>`${sc('class',{k:'bima',say:`Homework should be banned!`},{k:'ayu',say:`I see your point, but I'm afraid I disagree. Homework helps us practice.`})}
+   ${exl([[`I don't think so. / I disagree. / I don't agree.`,`Saya tidak setuju.`],[`I'm afraid I disagree. / I'm not so sure about that.`,`Maaf, saya kurang setuju. (sopan)`],[`I see your point, but ... / That's true, but ...`,`Saya paham maksudmu, tetapi ... (setuju sebagian)`],[`That's not true. / On the contrary, ...`,`Itu tidak benar. / Justru sebaliknya. (tegas)`]])}
+   ${tip(`Awali dengan <mark>I see your point, but</mark> agar tidak terdengar kasar, lalu beri alasan.`)}`},
+  {t:'Tangga kesopanan',h:()=>`<p>Dari setuju sekali sampai tidak setuju sama sekali:</p>
+   <div class="ladder">
+    <div class="lad" style="--b:var(--c1)"><i></i><div><b>Sangat setuju</b><span>Absolutely! / I couldn't agree more.</span></div></div>
+    <div class="lad" style="--b:#5fae5a"><i></i><div><b>Setuju</b><span>I agree with you. / You're right.</span></div></div>
+    <div class="lad" style="--b:var(--c5)"><i></i><div><b>Setuju sebagian</b><span>I see your point, but ...</span></div></div>
+    <div class="lad" style="--b:#e0762a"><i></i><div><b>Tidak setuju (sopan)</b><span>I'm afraid I disagree. / I'm not so sure about that.</span></div></div>
+    <div class="lad" style="--b:#c62828"><i></i><div><b>Tidak setuju (tegas)</b><span>That's not true. / On the contrary, ...</span></div></div>
+   </div>
+   ${tip(`Di sekolah dan situasi resmi, pilih ungkapan yang <mark>sopan</mark>. Simpan ungkapan tegas untuk teman dekat.`)}`}
+ ],
+ sim:{title:'Debat di Panggung Musik',intro:`Kamu ikut debat ringan di acara seni sekolah. Setiap situasi punya tujuan: setuju, sopan tidak setuju, atau tegas tetapi santun. Pilih ungkapan yang paling cocok.`,
+  steps:[
+   {t:'mcq',scene:sc('stage',{k:'ayu',say:`I think students should learn traditional music at school.`,ex:GUITAR}),p:`Kamu <b>setuju sepenuhnya</b>. Pilih respons terbaik.`,
+    o:[{t:`Absolutely! It keeps our culture alive.`,fb:``},{t:`I'm afraid I disagree.`,fb:`Ini ungkapan tidak setuju.`},{t:`That's not true.`,fb:`Ini ungkapan tidak setuju yang tegas.`},{t:`I'm not so sure about that.`,fb:`Ini menyatakan keraguan, bukan setuju penuh.`}],a:0,e:`<mark>Absolutely!</mark> menyatakan setuju kuat, dan alasannya membuat jawabanmu meyakinkan.`},
+   {t:'mcq',scene:sc('class',{k:'ayu',say:`Students shouldn't use phones at school at all.`}),p:`Kamu <b>kurang setuju</b> dan ingin menjawab dengan sopan, lengkap dengan alasan.`,
+    o:[{t:`I see your point, but I don't think so. We can use phones for learning.`,fb:``},{t:`That's rubbish!`,fb:`Terlalu kasar dan tanpa alasan.`},{t:`Yes, you're right.`,fb:`Ini ungkapan setuju.`},{t:`I don't care.`,fb:`Tidak sopan dan tidak memberi alasan.`}],a:0,e:`<mark>I see your point, but ...</mark> melunakkan ketidaksetujuan, lalu kamu memberi alasan.`},
+   {t:'mcq',scene:sc('field',{k:'bima',say:`Playing online games every day is good for students.`,ex:BALL}),p:`Kamu <b>tidak setuju</b>. Pilih respons yang tegas tetapi tetap santun.`,
+    o:[{t:`I'm afraid I disagree. Playing every day can disturb our sleep and study.`,fb:``},{t:`I couldn't agree more.`,fb:`Ini menyatakan setuju.`},{t:`Exactly!`,fb:`Ini juga menyatakan setuju.`},{t:`Me too.`,fb:`Ini berarti kamu sependapat.`}],a:0,e:`<mark>I'm afraid I disagree</mark> sopan dan jelas, lalu alasan memperkuatnya.`}
+  ]},
+ quiz:[
+  {t:'mcq',p:`Which expression shows <b>agreement</b>?`,o:[`I couldn't agree more.`,`I'm afraid I disagree.`,`That's not true.`,`On the contrary.`],a:0,e:`<mark>I couldn't agree more</mark> berarti sangat setuju.`},
+  {t:'classify',p:`Kelompokkan ungkapan: <b>Agree</b> atau <b>Disagree</b>?`,buckets:['Agree','Disagree'],items:[[`Absolutely!`,0],[`I don't think so.`,1],[`You're right.`,0],[`I'm not so sure about that.`,1]],e:`Absolutely dan You're right menyatakan setuju. Dua lainnya menyatakan ketidaksetujuan.`},
+  {t:'blank',p:`A: "Sports are good for health."  B: "I totally ______ with you."`,o:[`agree`,`agrees`,`agreeing`,`agreement`],a:0,e:`Setelah <i>I</i> dipakai bentuk dasar: <mark>I agree with you</mark>.`},
+  {t:'tf',p:`"I see your point, but ..." is a polite way to disagree.`,a:0,e:`Benar. Ungkapan ini mengakui pendapat lawan bicara sebelum menyampaikan ketidaksetujuan.`},
+  {t:'order',p:`Susun kata menjadi ungkapan tidak setuju yang sopan.`,k:[`I'm`,`afraid`,`I`,`don't`,`agree`,`with`,`you.`],e:`Urutan: I'm afraid I don't agree with you.`},
+  {t:'match',p:`Pasangkan pernyataan dengan respons yang tepat.`,pairs:[[`Traditional music should be taught at school.`,`I couldn't agree more. It keeps our culture alive.`],[`Homework should be banned.`,`I'm afraid I disagree. Homework helps us practice.`],[`Playing games all day is healthy.`,`I don't think so. We need rest and exercise.`]],e:`Respons pertama setuju, dua lainnya tidak setuju, masing-masing dengan alasan.`}
+ ]},
+
+{id:'s3',n:3,name:'Gunung Analisis',en:'Analytical Exposition',
+ desc:`Daki gunung ini untuk memahami teks yang meyakinkan pembaca bahwa suatu hal itu penting atau benar.`,
+ hero:()=>sc('village',{k:'sinta',say:`Why do we need a village library?`},{k:'bima',say:`In my opinion, it helps students a lot!`}),
+ learn:[
+  {t:'Apa itu analytical exposition?',h:()=>`<div class="icons">${lensIc}<p style="margin:0"><b>Analytical exposition</b> adalah teks yang bertujuan <b>meyakinkan pembaca bahwa sesuatu itu penting atau memang demikian</b> (something <mark>is</mark> the case).</p></div>
+   <div class="duo"><div class="duo-c" style="--b:var(--c3)"><b>Claim</b><span>Regular exercise is important for students.</span></div><div class="duo-c" style="--b:var(--c2)"><b>Alasan</b><span>It keeps the body healthy, improves focus, and builds character.</span></div></div>
+   ${tip(`Penulis menyampaikan pendapat, lalu <mark>mendukungnya dengan alasan</mark>. Teks diakhiri dengan penegasan kembali (reiteration).`)}`},
+  {t:'Generic structure',h:()=>`${mountainSvg}
+   <ul class="exl">
+    <li style="border-color:var(--c1)"><b>1. Thesis</b><small>Memperkenalkan topik dan posisi penulis. Boleh memuat gambaran argumen yang akan dibahas.</small></li>
+    <li style="border-color:var(--c2)"><b>2. Arguments</b><small>Berisi dua atau lebih alasan. Tiap argumen terdiri dari <i>point</i> (gagasan utama) dan <i>elaboration</i> (penjelasan atau bukti).</small></li>
+    <li style="border-color:var(--c4)"><b>3. Reiteration</b><small>Menegaskan kembali posisi penulis dengan kata-kata berbeda.</small></li>
+   </ul>`},
+  {t:'Language features',h:()=>`${exl([[`Simple present tense`,`Exercise <i>keeps</i> the body healthy.`],[`Connectives (kata penghubung)`,`firstly, secondly, in addition, therefore, however, in conclusion`],[`Abstract and general nouns`,`health, education, pollution, concentration`],[`Evaluative words (kata penilaian)`,`important, essential, beneficial, harmful`],[`Thinking verbs`,`believe, think, consider`]])}
+   ${tip(`Hafalkan urutan penghubung: <mark>Firstly</mark> → <mark>Secondly</mark> → <mark>In addition</mark> → <mark>In conclusion</mark>.`)}`},
+  {t:'Contoh teks',h:()=>`<div class="ann">
+   <h3>Regular Exercise Is Important for Students</h3>
+   <div class="blk" style="--b:var(--c1)"><span class="lab">Thesis</span><p><mark>In my opinion</mark>, regular exercise is very important for students. It keeps the body healthy, improves concentration, and builds good character.</p></div>
+   <div class="blk" style="--b:var(--c2)"><span class="lab">Argument 1</span><p><mark>Firstly</mark>, exercise keeps the body strong. Students who run, play football, or ride a bike every day have stronger muscles and a healthier heart. They also get sick less often.</p></div>
+   <div class="blk" style="--b:var(--c2)"><span class="lab">Argument 2</span><p><mark>Secondly</mark>, exercise improves concentration. Physical activity sends more oxygen to the brain, so students can focus better in class.</p></div>
+   <div class="blk" style="--b:var(--c3)"><span class="lab">Argument 3</span><p><mark>Finally</mark>, sports build character. In a team, students learn discipline, cooperation, and sportsmanship.</p></div>
+   <div class="blk" style="--b:var(--c4)"><span class="lab">Reiteration</span><p><mark>In conclusion</mark>, regular exercise is essential for students because it improves health, learning, and character.</p></div>
+   </div>
+   ${tip(`Perhatikan kata yang disorot: itulah penanda opini dan penghubung antarbagian.`)}`}
+ ],
+ sim:{title:'Susun Teks Desa',intro:`Empat blok teks tentang jalan desa tercampur. Ketuk blok untuk mengisi tiap bagian: Thesis, dua Argument, lalu Reiteration. Dua argumen boleh bertukar tempat.`,
+  steps:[
+   {t:'order',p:`<b>Good Roads Are Important for a Village.</b> Susun blok-blok ini menjadi teks analytical exposition.`,
+    k:[`In my opinion, good roads are very important for a village. They help farmers, students, and local businesses.`,`Firstly, good roads help farmers sell their crops. Trucks can reach the village quickly, so vegetables stay fresh and prices are better.`,`Secondly, good roads make it safe for students to reach school. Damaged roads are dangerous, especially in the rainy season.`,`In conclusion, good roads are essential for a village because they support the economy and keep children safe.`],
+    slots:[`Thesis`,`Argument`,`Argument`,`Reiteration`],free:[1,2],e:`Thesis memperkenalkan posisi, argumen memberi alasan (Firstly, Secondly), dan reiteration menegaskan kembali dengan <mark>In conclusion</mark>.`}
+  ]},
+ quiz:[
+  {t:'mcq',p:`The social purpose of an analytical exposition text is ...`,o:[`to tell a past event`,`to persuade the reader that something is important or is the case`,`to describe a specific person`,`to give instructions`],a:1,e:`Analytical exposition meyakinkan pembaca bahwa suatu gagasan itu penting atau benar.`},
+  {t:'classify',p:`Tentukan bagian teks untuk setiap kalimat.`,buckets:['Thesis','Argument','Reiteration'],items:[[`I believe every school should have a library.`,0],[`Firstly, a library gives students free access to books.`,1],[`Secondly, reading in a quiet place improves focus.`,1],[`In conclusion, a library is essential for every school.`,2]],e:`Thesis menyatakan posisi, argumen diawali Firstly atau Secondly, dan reiteration diawali <mark>In conclusion</mark>.`},
+  {t:'mcq',p:`Which phrase is most suitable to start the <b>Reiteration</b>?`,o:[`Firstly,`,`In addition,`,`In conclusion,`,`For example,`],a:2,e:`<mark>In conclusion</mark> menandai penutup teks.`},
+  {t:'tf',p:`An analytical exposition is usually written in the simple present tense.`,a:0,e:`Benar. Teks ini menyatakan pendapat dan fakta umum, jadi memakai simple present.`},
+  {t:'blank',p:`Firstly, exercise keeps the body healthy. ______, it improves our concentration.`,o:[`Secondly`,`Yesterday`,`Suddenly`,`Once upon a time`],a:0,e:`<mark>Secondly</mark> adalah penghubung untuk argumen kedua.`},
+  {t:'match',p:`Pasangkan bagian teks dengan fungsinya.`,pairs:[[`Thesis`,`Introduces the topic and the writer's position`],[`Arguments`,`Give reasons and evidence`],[`Reiteration`,`Restates the position and closes the text`]],e:`Ketiganya membentuk struktur analytical exposition.`}
+ ]},
+
+{id:'s4',n:4,name:'Menara Ajakan',en:'Hortatory Exposition',
+ desc:`Naiki menara ini untuk belajar teks yang mengajak pembaca melakukan sesuatu.`,
+ hero:()=>sc('river',{k:'sinta',say:`We should keep our river clean!`},{k:'dimas',say:`I agree. Let's start a clean-up day.`}),
+ learn:[
+  {t:'Apa itu hortatory exposition?',h:()=>`<div class="icons">${megaIc}<p style="margin:0"><b>Hortatory exposition</b> bertujuan <b>meyakinkan pembaca bahwa sesuatu seharusnya atau sebaiknya tidak dilakukan</b> (something <mark>should</mark> or <mark>should not</mark> be the case).</p></div>
+   ${sc('river',{k:'sinta',say:`Students should not throw rubbish into the river.`},{k:'bima',say:`You're right. It harms our village.`})}
+   ${tip(`Perbedaan inti: analytical berkata <i>"ini penting"</i>, hortatory berkata <i>"mari lakukan ini"</i>.`)}`},
+  {t:'Generic structure',h:()=>`${towerSvg}
+   <ul class="exl">
+    <li style="border-color:var(--c1)"><b>1. Thesis</b><small>Pernyataan isu atau hal yang menjadi perhatian penulis.</small></li>
+    <li style="border-color:var(--c2)"><b>2. Arguments</b><small>Alasan mengapa isu itu penting, mengarah ke rekomendasi.</small></li>
+    <li style="border-color:var(--c4)"><b>3. Recommendation</b><small>Pernyataan tentang apa yang seharusnya atau sebaiknya tidak terjadi.</small></li>
+   </ul>`},
+  {t:'Language features',h:()=>`${exl([[`Modals: should, must, ought to, need to, have to`,`We <i>should</i> stop throwing rubbish into rivers.`],[`Simple present tense`,`Dirty water <i>makes</i> people sick.`],[`Connectives`,`first, second, therefore, thus, in conclusion`],[`Evaluative and persuasive words`,`important, urgent, necessary, serious`],[`Passive voice`,`Rubbish <i>must be thrown</i> in the bin.`]])}
+   ${tip(`Ciri paling khas: kata <mark>should</mark>, <mark>must</mark>, dan <mark>ought to</mark> di bagian Recommendation.`)}`},
+  {t:'Analytical atau hortatory?',h:()=>`<div class="cmp">
+   <div class="cmphead"><span style="background:var(--c3)">Analytical</span><span style="background:var(--c4)">Hortatory</span></div>
+   <div class="cmprow"><div class="cl">Tujuan</div><div>Sesuatu itu penting atau benar</div><div>Sesuatu sebaiknya dilakukan atau tidak</div></div>
+   <div class="cmprow"><div class="cl">Bagian akhir</div><div>Reiteration</div><div>Recommendation</div></div>
+   <div class="cmprow"><div class="cl">Kata khas</div><div>important, essential, in conclusion</div><div>should, must, ought to, therefore</div></div>
+   <div class="cmprow"><div class="cl">Contoh kalimat</div><div>Exercise is essential for students.</div><div>Students should exercise every day.</div></div>
+   </div>`},
+  {t:'Contoh teks',h:()=>`<div class="ann">
+   <h3>We Should Keep Our Rivers Clean</h3>
+   <div class="blk" style="--b:var(--c1)"><span class="lab">Thesis</span><p>Many rivers in our villages are now full of rubbish. Clean rivers are <mark>important</mark> for our health and our farms.</p></div>
+   <div class="blk" style="--b:var(--c2)"><span class="lab">Argument 1</span><p><mark>First</mark>, dirty water makes people sick. Many families still use river water to wash and cook, so diseases spread quickly.</p></div>
+   <div class="blk" style="--b:var(--c2)"><span class="lab">Argument 2</span><p><mark>Second</mark>, polluted water harms farmers. Rice fields that use dirty water produce fewer crops.</p></div>
+   <div class="blk" style="--b:var(--c4)"><span class="lab">Recommendation</span><p><mark>Therefore</mark>, we <mark>should</mark> stop throwing rubbish into rivers. Every family <mark>must</mark> provide a rubbish bin, and the village <mark>should</mark> hold a clean-up day every month.</p></div>
+   </div>`}
+ ],
+ sim:{title:'Kampanye Sekolah',intro:`Kamu menulis teks ajakan tentang sampah di sekitar sekolah. Pilih kalimat yang paling cocok untuk bagian Thesis, Argument, dan Recommendation.`,
+  steps:[
+   {t:'mcq',scene:sc('class',{k:'sinta',say:`Rubbish is everywhere around our school.`},{k:'dimas',say:`We must write a campaign text!`}),p:`Bagian 1: pilih kalimat terbaik untuk <b>Thesis</b> (pernyataan isu).`,
+    o:[{t:`Rubbish around our school is becoming a serious problem that affects all of us.`,fb:``},{t:`Yesterday I saw a big truck near the school.`,fb:`Kalimat ini tidak menyatakan isu utama.`},{t:`You must buy a new bin right now!`,fb:`Ini lebih cocok sebagai Recommendation, bukan Thesis.`},{t:`Some students like to eat snacks.`,fb:`Kalimat ini belum menyatakan isu dan posisi penulis.`}],a:0,e:`Thesis memperkenalkan isu dan menunjukkan mengapa isu itu penting.`},
+   {t:'mcq',scene:sc('class',{k:'sinta',say:`Now we need a strong reason.`}),p:`Bagian 2: pilih kalimat terbaik untuk <b>Argument</b>.`,
+    o:[{t:`First, rubbish attracts flies and rats, so it can make students sick.`,fb:``},{t:`In conclusion, I hope you like my text.`,fb:`Ini kalimat penutup, bukan alasan.`},{t:`We should clean it.`,fb:`Ini rekomendasi, bukan alasan.`},{t:`The school has three buildings.`,fb:`Fakta ini tidak mendukung isu.`}],a:0,e:`Argumen memberi alasan, sering diawali <mark>First</mark>, dan menjelaskan akibatnya.`},
+   {t:'mcq',scene:sc('class',{k:'dimas',say:`Finally, tell everyone what to do!`}),p:`Bagian 3: pilih kalimat terbaik untuk <b>Recommendation</b>.`,
+    o:[{t:`Therefore, every student should throw rubbish in the bin, and each class ought to join a weekly clean-up.`,fb:``},{t:`Rubbish is an old problem.`,fb:`Ini pernyataan umum, bukan ajakan.`},{t:`Rubbish is made from many materials.`,fb:`Ini fakta, bukan rekomendasi.`},{t:`Students were throwing rubbish yesterday.`,fb:`Ini kejadian lampau, bukan ajakan.`}],a:0,e:`Recommendation memakai modal seperti <mark>should</mark> dan <mark>ought to</mark> untuk mengajak pembaca bertindak.`}
+  ]},
+ quiz:[
+  {t:'mcq',p:`The social purpose of a hortatory exposition is to ...`,o:[`tell a funny story`,`describe a place`,`persuade readers that something should or should not be done`,`explain how a machine works`],a:2,e:`Hortatory exposition mengajak pembaca melakukan atau tidak melakukan sesuatu.`},
+  {t:'classify',p:`Kelompokkan ciri berikut: <b>Analytical</b> atau <b>Hortatory</b>?`,buckets:['Analytical','Hortatory'],items:[[`Persuades that something is the case`,0],[`Persuades that something should or should not be the case`,1],[`Ends with a recommendation`,1],[`Ends with a reiteration of the thesis`,0]],e:`Analytical berakhir dengan reiteration. Hortatory berakhir dengan recommendation.`},
+  {t:'mcq',p:`Which sentence is a <b>recommendation</b>?`,o:[`Therefore, schools should provide more sports facilities.`,`Football is played on grass.`,`Yesterday we played volleyball.`,`Some students like music.`],a:0,e:`Recommendation memuat modal <mark>should</mark> yang mengajak pembaca bertindak.`},
+  {t:'tf',p:`Modals such as should, must, and ought to are common in hortatory exposition.`,a:0,e:`Benar. Modal dipakai untuk menyatakan saran atau keharusan.`},
+  {t:'blank',p:`To protect our environment, we ______ stop burning plastic.`,o:[`should`,`did`,`were`,`have been`],a:0,e:`<mark>Should</mark> menyatakan saran atau rekomendasi.`},
+  {t:'match',p:`Pasangkan bagian teks dengan fungsinya.`,pairs:[[`Thesis`,`States the issue or concern`],[`Arguments`,`Give reasons why the issue matters`],[`Recommendation`,`Says what ought or ought not to happen`]],e:`Ketiganya membentuk struktur hortatory exposition.`}
+ ]},
+
+{id:'s5',n:5,name:'Gerbang Juara',en:'Final Challenge',boss:true,
+ desc:`Tantangan akhir mencakup semua materi: opinion, agreement and disagreement, analytical, dan hortatory exposition. Lulus untuk membuka sertifikat.`,
+ hero:()=>sc('field',{k:'dimas',say:`Are you ready for the final challenge?`,ex:BALL},{k:'rina',say:`Yes! Let's win this!`}),
+ quiz:[
+  {t:'mcq',p:`Which text type ends with a <b>recommendation</b>?`,o:[`Analytical exposition`,`Hortatory exposition`,`Asking for an opinion`,`Agreement`],a:1,e:`Hortatory exposition berakhir dengan recommendation.`},
+  {t:'blank',p:`A: "I think students should wear uniforms."  B: "______. Uniforms make everyone equal."`,o:[`I couldn't agree more`,`I'm afraid I disagree`,`I'm not so sure`,`That's not true`],a:0,e:`Alasan B mendukung pendapat A, jadi B menyatakan setuju.`},
+  {t:'classify',p:`Kelompokkan fungsi setiap ungkapan.`,buckets:['Asking opinion','Giving opinion','Agreeing','Disagreeing'],items:[[`What's your opinion about online learning?`,0],[`If you ask me, traditional music is priceless.`,1],[`Exactly! You're right.`,2],[`I'm afraid I disagree.`,3]],e:`Perhatikan fungsi tiap ungkapan: bertanya, berpendapat, setuju, atau tidak setuju.`},
+  {t:'tf',p:`In an analytical exposition, the writer ends the text with a recommendation.`,a:1,e:`Salah. Analytical exposition berakhir dengan reiteration. Recommendation milik hortatory exposition.`},
+  {t:'order',p:`Susun kata menjadi kalimat pendapat.`,k:[`Personally,`,`I`,`think`,`music`,`makes`,`learning`,`fun.`],e:`Urutan: Personally, I think music makes learning fun.`},
+  {t:'match',p:`Pasangkan ciri dengan jenisnya.`,pairs:[[`Thesis → Arguments → Reiteration`,`Analytical exposition`],[`Thesis → Arguments → Recommendation`,`Hortatory exposition`],[`What do you think about ...?`,`Asking for an opinion`],[`I see your point, but ...`,`Polite disagreement`]],e:`Hafalkan struktur dan ungkapan khas masing-masing.`},
+  {t:'mcq',pre:`"Our school canteen sells too much fried food and sweet drinks. Students who eat this every day may become unhealthy. Therefore, the canteen should sell more fruit and vegetables, and students should bring water from home."`,p:`What type of text is this, and why?`,o:[`Hortatory exposition, because it ends with a recommendation using "should".`,`Analytical exposition, because it ends with a reiteration.`,`Narrative, because it tells a story.`,`Procedure, because it gives steps.`],a:0,e:`Teks ini mengajak pembaca bertindak dengan kata <mark>should</mark>, jadi termasuk hortatory exposition.`},
+  {t:'mcq',p:`Which sentence best gives an <b>opinion</b>?`,o:[`The match starts at four o'clock.`,`In my opinion, the match was boring.`,`The stadium has two gates.`,`Ali plays for the school team.`],a:1,e:`<mark>In my opinion</mark> dan kata <i>boring</i> menandakan penilaian pribadi.`}
+ ]}
+];
+const byId=id=>STAGES.find(g=>g.id===id);
+const allPassed=()=>STAGES.every(g=>st(g.id).passed);
+const isUnlocked=i=>i===0||(i<5?st(STAGES[i-1].id).passed:allPassed());
+const curIdx=()=>{for(let i=0;i<5;i++)if(!st(STAGES[i].id).passed)return i;return 5;};
+const stStyle=g=>`--st:var(--c${g.n});--on-st:${g.n===5?'#2a1d00':'#fff'}`;
+
+/* ---------- question engine ---------- */
+function mountQ(host,q,opt){
+  host.innerHTML=`<div class="qbox">${q.scene||''}${q.pre?`<div class="pass">${q.pre}</div>`:''}<p class="qp">${q.p}</p><div class="qbody"></div><div class="fb" hidden></div><div class="qact"></div></div>`;
+  const qbox=$('.qbox',host);
+  const ctx={qbox,qp:$('.qp',qbox),body:$('.qbody',qbox),fb:$('.fb',qbox),act:$('.qact',qbox),q,opt};
+  ({mcq:qChoice,tf:qChoice,blank:qChoice,order:qOrder,classify:qClass,match:qMatch})[q.t](ctx);
+}
+function feedback(ctx,frac,extra,head){
+  const {fb,q}=ctx;
+  fb.hidden=false;fb.className='fb '+(frac>=1?'good':frac>0?'part':'bad');
+  fb.innerHTML=`<b>${head||(frac>=1?'Benar!':frac>0?'Sebagian benar.':'Belum tepat.')}</b> ${extra||''}${q.e?`<span class="ex">${q.e}</span>`:''}`;
+  sfx(frac>=1?'ok':'bad');
+}
+function hint(ctx,msg){const {fb}=ctx;fb.hidden=false;fb.className='fb bad';fb.innerHTML=`<b>Belum tepat, coba lagi.</b> ${msg||''}`;sfx('bad');}
+function nextBtn(ctx,frac){
+  const {act,opt}=ctx;
+  act.innerHTML=`<button class="btn sun" type="button">${opt.last?'Selesai':'Lanjut'}</button>`;
+  $('button',act).onclick=()=>opt.onNext(frac);
+  act.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+function qChoice(ctx){
+  const {body,q,opt,qp,qbox}=ctx;
+  const o=q.t==='tf'?['True (Benar)','False (Salah)']:q.o;
+  const ord=q.t==='tf'?o.map((_,i)=>i):shuffle(o.map((_,i)=>i));
+  if(q.t==='blank')qp.innerHTML=q.p.replace(/_{3,}/,'<span class="gap">______</span>');
+  const lab=x=>typeof x==='string'?x:x.t;
+  body.innerHTML=`<div class="opts">${ord.map((i,k)=>`<button type="button" class="opt" data-i="${i}"><span class="ol">${'ABCD'[k]}</span><span>${lab(o[i])}</span></button>`).join('')}</div>`;
+  const btns=$$('.opt',body);let tries=0,done=false;
+  const fill=()=>{const g=$('.gap',qbox);if(g){g.textContent=lab(o[q.a]);g.classList.add('filled');}};
+  btns.forEach(b=>b.onclick=()=>{
+    if(done)return;
+    const i=+b.dataset.i;tries++;
+    if(i===q.a){
+      done=true;b.classList.add('ok');
+      btns.forEach(x=>{x.disabled=true;if(x!==b&&!x.classList.contains('bad'))x.classList.add('dim');});
+      fill();feedback(ctx,1,'',tries===1?'Benar!':'Nah, itu dia!');nextBtn(ctx,tries===1?1:0);
+    }else if(opt.retry){
+      b.classList.add('bad');b.disabled=true;hint(ctx,typeof o[i]==='object'?o[i].fb:'');
+    }else{
+      done=true;b.classList.add('bad');
+      btns.forEach(x=>{x.disabled=true;if(+x.dataset.i===q.a)x.classList.add('ok');else if(x!==b)x.classList.add('dim');});
+      fill();feedback(ctx,0,`Jawaban yang benar: <b>${lab(o[q.a])}</b>. `);nextBtn(ctx,0);
+    }
+  });
+}
+function qOrder(ctx){
+  const {body,act,q,opt}=ctx;
+  const n=q.k.length,blocks=!!q.slots,retry=!!opt.retry;
+  let pool=shuffle(q.k.map((t,i)=>({t,i})));
+  if(pool.every((x,j)=>x.i===j))pool.reverse();
+  let ans=blocks?Array(n).fill(null):[],state='play',first=null;
+  const okAt=s=>{const p=ans[s];if(!p)return false;if(p.i===s)return true;return !!(q.free&&q.free.includes(s)&&q.free.includes(p.i));};
+  const allOk=()=>blocks?ans.every((_,s)=>okAt(s)):(ans.length===n&&ans.every((p,j)=>p.i===j));
+  const ready=()=>blocks?ans.every(Boolean):ans.length===n;
+  function draw(){
+    const used=new Set(ans.filter(Boolean).map(x=>x.i)),rest=pool.filter(x=>!used.has(x.i)),locked=state!=='play';
+    let h='';
+    if(blocks)h+=`<div class="slots">${ans.map((p,s)=>`<button type="button" class="slot${p?' filled':''}${locked&&p?(okAt(s)?' ok':' bad'):''}" data-s="${s}"${locked?' disabled':''}><small>${q.slots[s]}</small><span>${p?p.t:'Ketuk satu blok di bawah untuk mengisi'}</span></button>`).join('')}</div>`;
+    else h+=`<div class="ansline${locked?(allOk()?' ok':' bad'):''}">${ans.length?ans.map((p,j)=>`<button type="button" class="tok in" data-j="${j}"${locked?' disabled':''}>${p.t}</button>`).join(''):'<span class="ph">Ketuk kata di bawah untuk menyusun kalimat</span>'}</div>`;
+    h+=`<div class="pool">${rest.map(x=>`<button type="button" class="tok${blocks?' blk':''}" data-i="${x.i}"${locked?' disabled':''}>${x.t}</button>`).join('')}</div>`;
+    body.innerHTML=h;
+    $$('.pool .tok',body).forEach(b=>b.onclick=()=>{
+      const p=pool.find(x=>x.i===+b.dataset.i);
+      if(blocks){const s=ans.indexOf(null);if(s>=0)ans[s]=p;}else ans.push(p);
+      draw();
+    });
+    $$('.slot',body).forEach(b=>b.onclick=()=>{ans[+b.dataset.s]=null;draw();});
+    $$('.ansline .tok',body).forEach(b=>b.onclick=()=>{ans.splice(+b.dataset.j,1);draw();});
+    if(state==='play'){act.innerHTML=`<button class="btn" type="button"${ready()?'':' disabled'}>Periksa</button>`;$('button',act).onclick=check;}
+  }
+  function check(){
+    state='checked';
+    const frac=blocks?ans.filter((_,s)=>okAt(s)).length/n:(allOk()?1:0);
+    if(first===null)first=frac;
+    draw();
+    if(frac===1){feedback(ctx,first,'');nextBtn(ctx,first);}
+    else if(retry){
+      hint(ctx,'Ada blok yang belum pada tempatnya. Perhatikan kata penghubung dan isi tiap bagian.');
+      act.innerHTML=`<button class="btn" type="button" id="again">Coba lagi</button><button class="btn ghost" type="button" id="show">Tampilkan jawaban</button>`;
+      $('#again',act).onclick=()=>{ans=blocks?Array(n).fill(null):[];state='play';ctx.fb.hidden=true;draw();};
+      $('#show',act).onclick=()=>{ans=q.k.map((t,i)=>({t,i}));state='shown';draw();feedback(ctx,first,'Ini susunan yang benar. ');nextBtn(ctx,first);};
+    }else{feedback(ctx,frac,`Susunan yang benar: <b>${q.k.join(' ')}</b>. `);nextBtn(ctx,frac);}
+  }
+  draw();
+}
+function qClass(ctx){
+  const {body,act,q}=ctx;
+  const n=q.items.length,ch=Array(n).fill(-1);let done=false;
+  function draw(){
+    body.innerHTML=`<div class="opts">${q.items.map((it,i)=>`<div class="crow${done?(ch[i]===it[1]?' ok':' bad'):''}"><p>${it[0]}</p><div class="pills">${q.buckets.map((b,j)=>`<button type="button" class="pill${ch[i]===j?' on':''}" data-i="${i}" data-j="${j}"${done?' disabled':''}>${b}</button>`).join('')}</div>${done&&ch[i]!==it[1]?`<small class="ans">Seharusnya: ${q.buckets[it[1]]}</small>`:''}</div>`).join('')}</div>`;
+    $$('.pill',body).forEach(b=>b.onclick=()=>{ch[+b.dataset.i]=+b.dataset.j;draw();});
+    if(!done){
+      act.innerHTML=`<button class="btn" type="button"${ch.every(x=>x>=0)?'':' disabled'}>Periksa</button>`;
+      $('button',act).onclick=()=>{done=true;const f=ch.filter((c,i)=>c===q.items[i][1]).length/n;draw();feedback(ctx,f,'');nextBtn(ctx,f);};
+    }
+  }
+  draw();
+}
+function qMatch(ctx){
+  const {body,act,q}=ctx;
+  const n=q.pairs.length,R=shuffle([...Array(n).keys()]),as=Array(n).fill(-1);let sel=0,done=false;
+  function draw(){
+    body.innerHTML=`<div class="mt"><div class="mcol">${q.pairs.map((p,i)=>`<button type="button" class="mi l${!done&&sel===i?' sel':''}${done?(R[as[i]]===i?' ok':' bad'):''}" data-l="${i}"${done?' disabled':''}><span class="bd">${i+1}</span><span>${p[0]}</span></button>`).join('')}</div><div class="mcol">${R.map((pi,r)=>{const li=as.indexOf(r);return `<button type="button" class="mi r${li>=0?' used':''}" data-r="${r}"${done?' disabled':''}>${li>=0?`<span class="bd">${li+1}</span>`:'<span class="bd ghost"></span>'}<span>${q.pairs[pi][1]}</span></button>`;}).join('')}</div></div>`;
+    $$('.mi.l',body).forEach(b=>b.onclick=()=>{const i=+b.dataset.l;as[i]=-1;sel=i;draw();});
+    $$('.mi.r',body).forEach(b=>b.onclick=()=>{
+      const r=+b.dataset.r;
+      if(sel<0){const li=as.indexOf(r);if(li>=0){as[li]=-1;sel=li;}draw();return;}
+      const prev=as.indexOf(r);if(prev>=0)as[prev]=-1;
+      as[sel]=r;sel=as.findIndex(x=>x<0);draw();
+    });
+    if(!done){
+      act.innerHTML=`<button class="btn" type="button"${as.every(x=>x>=0)?'':' disabled'}>Periksa</button>`;
+      $('button',act).onclick=()=>{
+        done=true;const wrong=[];let c=0;
+        as.forEach((r,i)=>{if(R[r]===i)c++;else wrong.push(`${i+1} → ${q.pairs[i][1]}`);});
+        const f=c/n;draw();feedback(ctx,f,wrong.length?`Pasangan yang benar: ${wrong.join('; ')}. `:'');nextBtn(ctx,f);
+      };
+    }
+  }
+  draw();
+}
+
+/* ---------- views ---------- */
+let view={v:'welcome'};
+function go(v,a){view={v,a};window.scrollTo(0,0);render();}
+function render(){
+  renderHud();
+  ({welcome:welcomeView,map:mapView,hub:hubView,learn:learnView,sim:simView,quiz:quizView,cert:certView})[view.v](view.a);
+}
+const SND_ON=`<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`;
+const SND_OFF=`<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`;
+function totalStars(){return STAGES.reduce((a,g)=>a+(st(g.id).passed?starsOf(st(g.id).best):0),0);}
+function renderHud(){
+  const hs=$('#hstars');hs.hidden=view.v==='welcome';hs.innerHTML=`${starSvg(16,true)} ${totalStars()}/15`;
+  $('#hmap').hidden=(view.v==='welcome'||view.v==='map');
+  $('#hsnd').innerHTML=S.snd?SND_ON:SND_OFF;$('#hsnd').setAttribute('aria-label',S.snd?'Matikan suara':'Nyalakan suara');
+}
+const back=(label)=>`<div class="backbar"><button class="btn ghost sm" data-back type="button">← ${label||'Kembali'}</button></div>`;
+
+function welcomeView(){
+  const has=!!S.name;
+  app.innerHTML=`<section class="hero">
+   ${sc('field',{k:'dimas',say:`What do you think about learning English?`,ex:BALL},{k:'rina',say:`In my opinion, it is an adventure!`})}
+   <div class="stack" style="gap:8px"><p class="eyebrow">Bahasa Inggris · Kelas XI</p><h1>Opinion Island</h1><p class="sub">Jelajahi pulau, kumpulkan bintang, dan buka sertifikatmu. Materi: opinion, agreement and disagreement, analytical exposition, dan hortatory exposition.</p></div>
+   <ol class="how"><li><b>1 Baca</b><span>Materi bergambar</span></li><li><b>2 Main</b><span>Simulasi percakapan</span></li><li><b>3 Uji</b><span>Kuis beragam</span></li><li><b>4 Menang</b><span>Sertifikat di istana</span></li></ol>
+   <div class="card stack">
+    <div class="form"><div class="field"><label for="in-name">Nama lengkap</label><input id="in-name" autocomplete="name" value="${esc(S.name)}" placeholder="Tulis namamu"></div><div class="field"><label for="in-cls">Kelas</label><input id="in-cls" value="${esc(S.cls||'XI')}" placeholder="XI-1"></div></div>
+    <div class="row"><button class="btn" id="go" type="button">${has?'Lanjutkan petualangan':'Mulai petualangan'}</button>${has?'<button class="btn ghost" id="rst" type="button">Mulai dari awal</button>':''}</div>
+    <div id="rstbox"></div>
+   </div>
+   <p class="credit">Disusun oleh Roni Hairani · SMAN 10 Pandeglang</p></section>`;
+  const start=()=>{
+    const nm=$('#in-name').value.trim();
+    if(!nm){toast('Tulis namamu dulu, ya.');$('#in-name').focus();return;}
+    S.name=nm;S.cls=$('#in-cls').value.trim()||'XI';save();go('map');
+  };
+  $('#go').onclick=start;
+  $('#in-name').onkeydown=e=>{if(e.key==='Enter')start();};
+  if(has)$('#rst').onclick=()=>{
+    $('#rstbox').innerHTML=`<div class="tip"><b>Hapus progres?</b><div>Semua bintang dan skor akan dihapus.</div><div class="row" style="margin-top:6px"><button class="btn sm" id="yes" type="button">Ya, hapus</button><button class="btn ghost sm" id="no" type="button">Batal</button></div></div>`;
+    $('#no').onclick=()=>{$('#rstbox').innerHTML='';};
+    $('#yes').onclick=()=>{S=def();save();go('welcome');};
+  };
+}
+
+/* map */
+const NODES=[{x:95,y:120},{x:265,y:290},{x:95,y:470},{x:265,y:650},{x:110,y:830},{x:250,y:995}];
+const tree=(x,y,s)=>`<g transform="translate(${x} ${y}) scale(${s||1})"><rect x="-2" y="2" width="4" height="9" style="fill:#7a4a24"/><circle cx="0" cy="-4" r="10" style="fill:#2f9e57"/><circle cx="-6" cy="3" r="7" style="fill:#3bb369"/><circle cx="6" cy="3" r="7" style="fill:#2f9e57"/></g>`;
+const wave=(x,y)=>`<path d="M${x} ${y}q5-6 10 0t10 0t10 0" style="fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;opacity:.5"/>`;
+function nodeG(i,cur){
+  const n=NODES[i],isC=i===5,g=STAGES[i];
+  const locked=!isUnlocked(i),done=!isC&&st(g.id).passed,stars=done?starsOf(st(g.id).best):0;
+  const dark=(isC||i===4)&&!locked;
+  const fill=locked?'var(--lock)':isC?'var(--sun)':`var(--c${i+1})`;
+  const ink=dark?'#2a1d00':'#fff';
+  let icon;
+  if(locked)icon=`<rect x="-9" y="-3" width="18" height="14" rx="3" style="fill:#fff"/><path d="M-5 -3v-5a5 5 0 0110 0v5" style="stroke:#fff;stroke-width:3;fill:none"/>`;
+  else if(isC)icon=`<path d="M-9 -10h18v7a9 9 0 01-18 0z" style="fill:#2a1d00"/><path d="M-9 -7h-5a5 5 0 005 8M9 -7h5a5 5 0 01-5 8" style="stroke:#2a1d00;stroke-width:2;fill:none"/><rect x="-2" y="6" width="4" height="6" style="fill:#2a1d00"/><rect x="-7" y="12" width="14" height="3" rx="1" style="fill:#2a1d00"/>`;
+  else if(i===4)icon=`<polygon points="3,-13 -8,2 -1,2 -4,13 9,-3 2,-3" style="fill:#2a1d00"/>`;
+  else icon=`<text y="9" text-anchor="middle" style="font-family:var(--f-display);font-weight:800;font-size:26px;fill:${ink}">${i+1}</text>`;
+  const name=isC?'Istana Sertifikat':g.name,sub=isC?'Selesaikan 5 misi':g.en;
+  const label=`${isC?'Sertifikat':'Misi '+(i+1)+', '+g.name}${locked?', terkunci':done?', selesai':''}`;
+  const starRow=(!isC&&!locked)?[-22,0,22].map((dx,k)=>`<polygon points="${starPts(dx,80,8)}" style="fill:${k<stars?'var(--sun)':'var(--line)'};stroke:${k<stars?'#c98f00':'var(--muted)'};stroke-width:1"/>`).join(''):'';
+  return `<g class="node${locked?' locked':''}${i===cur?' cur':''}" data-go="${i}" tabindex="0" role="button" aria-label="${label}" transform="translate(${n.x} ${n.y})">
+   ${i===cur?`<circle class="pulse" r="30" style="fill:none;stroke:var(--sun);stroke-width:5"/>`:''}
+   <circle class="ring" r="28" style="fill:${fill};stroke:#fff;stroke-width:4"/>${icon}
+   <text class="lbl" y="50" text-anchor="middle" style="font-family:var(--f-display);font-weight:800;font-size:15px;fill:var(--ink)">${name}</text>
+   <text class="lbl" y="64" text-anchor="middle" style="font-family:var(--f-body);font-weight:500;font-size:10.5px;fill:var(--muted)">${sub}</text>${starRow}</g>`;
+}
+function mapSvg(cur){
+  const seg=(a,b)=>{const my=(a.y+b.y)/2;return ` C${a.x} ${my} ${b.x} ${my} ${b.x} ${b.y}`;};
+  let d=`M${NODES[0].x} ${NODES[0].y}`;for(let i=1;i<NODES.length;i++)d+=seg(NODES[i-1],NODES[i]);
+  let dp=`M${NODES[0].x} ${NODES[0].y}`,any=false;
+  for(let i=0;i<5;i++){if(st(STAGES[i].id).passed){dp+=seg(NODES[i],NODES[i+1]);any=true;}else break;}
+  const init=esc((S.name||'P').trim().charAt(0).toUpperCase());
+  const pn=NODES[cur];
+  return `<svg class="map" viewBox="-24 0 408 1120" role="group" aria-label="Peta petualangan Opinion Island">
+   <rect x="-24" width="408" height="1120" style="fill:var(--sea)"/>
+   ${wave(-18,150)}${wave(-18,430)}${wave(-18,760)}${wave(350,260)}${wave(350,590)}${wave(350,900)}
+   <path d="M40 30Q180 -5 320 30Q352 200 338 380Q356 560 336 740Q350 930 320 1090Q180 1115 40 1090Q8 900 22 720Q4 540 24 360Q10 190 40 30Z" style="fill:var(--land);stroke:var(--land2);stroke-width:6"/>
+   <g transform="translate(192 48)"><rect width="136" height="96" rx="6" style="fill:#3fa34d;stroke:#fff;stroke-width:2.5"/><line x1="68" y1="0" x2="68" y2="96" style="stroke:#fff;stroke-width:2"/><circle cx="68" cy="48" r="14" style="fill:none;stroke:#fff;stroke-width:2"/><rect x="0" y="26" width="20" height="44" style="fill:none;stroke:#fff;stroke-width:2"/><rect x="116" y="26" width="20" height="44" style="fill:none;stroke:#fff;stroke-width:2"/></g>
+   ${tree(40,92)}${tree(62,60,.8)}
+   <path d="M-6 222C70 196 130 246 200 218S320 200 358 224" style="fill:none;stroke:var(--river);stroke-width:22;stroke-linecap:round"/>
+   <path d="M-6 222C70 196 130 246 200 218S320 200 358 224" style="fill:none;stroke:#fff;stroke-width:8;stroke-linecap:round;opacity:.25"/>
+   <text x="304" y="168" style="font-size:22px;fill:#6a3fc0;opacity:.85">&#9834;</text><text x="324" y="190" style="font-size:18px;fill:#6a3fc0;opacity:.85">&#9835;</text>
+   ${tree(50,320)}${tree(30,352,.9)}${tree(322,382)}
+   <path d="M214 476L262 392L310 476Z" style="fill:#8a8fa8"/><path d="M262 392L249 416L262 410L275 418Z" style="fill:#fff"/><path d="M276 476L306 418L336 476Z" style="fill:#7a809b"/>
+   ${tree(40,590)}${tree(62,626,.9)}${tree(34,664)}${tree(322,540)}${tree(336,575,.9)}
+   <path d="${d}" style="fill:none;stroke:var(--trail);stroke-width:18;stroke-linecap:round"/>
+   <path d="${d}" style="fill:none;stroke:var(--trailline);stroke-width:2.5;stroke-dasharray:2 8;stroke-linecap:round"/>
+   ${any?`<path d="${dp}" style="fill:none;stroke:var(--sun);stroke-width:7;stroke-linecap:round;opacity:.9"/>`:''}
+   <g transform="translate(180 207) rotate(27)"><rect x="-40" y="-14" width="80" height="28" rx="4" style="fill:#b97a3d;stroke:#7a4a24;stroke-width:2"/><path d="M-30 -14v28M-20 -14v28M-10 -14v28M0 -14v28M10 -14v28M20 -14v28M30 -14v28" style="stroke:#7a4a24;stroke-width:1.5"/></g>
+   ${tree(330,700)}${tree(322,742,.9)}
+   <g transform="translate(250 780)"><ellipse cx="30" cy="22" rx="34" ry="16" style="fill:#4a4f6a"/><ellipse cx="14" cy="26" rx="18" ry="12" style="fill:#4a4f6a"/><ellipse cx="50" cy="26" rx="18" ry="12" style="fill:#5a6080"/><polygon points="34,34 24,52 32,52 28,66 44,46 35,46 40,34" style="fill:#ffd54a"/></g>
+   ${tree(36,880)}${tree(56,918,.9)}${tree(320,880)}
+   <g transform="translate(62 940)"><rect x="0" y="30" width="90" height="70" style="fill:#c9c2d8"/><rect x="-6" y="14" width="26" height="86" style="fill:#b3abc7"/><rect x="70" y="14" width="26" height="86" style="fill:#b3abc7"/><polygon points="-10,14 7,-8 24,14" style="fill:#c2570a"/><polygon points="66,14 83,-8 100,14" style="fill:#c2570a"/><rect x="34" y="58" width="22" height="42" rx="11" style="fill:#5b4a7a"/><line x1="7" y1="-8" x2="7" y2="-22" style="stroke:#444;stroke-width:2"/><polygon points="7,-22 22,-17 7,-12" style="fill:#ffb400"/></g>
+   ${tree(320,1050)}${tree(40,1062,.9)}
+   ${NODES.map((_,i)=>nodeG(i,cur)).join('')}
+   <g transform="translate(${pn.x} ${pn.y-46})" style="pointer-events:none"><g class="pin"><path d="M0 14C-10 2 -15 -4 -15 -12A15 15 0 0115 -12C15 -4 10 2 0 14Z" style="fill:var(--sun);stroke:#fff;stroke-width:2"/><circle cy="-12" r="9" style="fill:#fff"/><text y="-8" text-anchor="middle" style="font-family:var(--f-display);font-weight:800;font-size:13px;fill:#2a1d00">${init}</text></g></g>
+  </svg>`;
+}
+function mapView(){
+  const cur=curIdx(),pass=STAGES.filter(g=>st(g.id).passed).length;
+  app.innerHTML=`<section><div class="card greet"><p class="eyebrow">Peta petualangan</p><h1>Halo, ${esc(S.name||'Petualang')}!</h1><p class="muted" style="margin:0">${pass===5?'Semua misi selesai. Sertifikatmu menunggu di istana.':`Misi selesai: <b>${pass}/5</b>. Ketuk lingkaran yang menyala untuk lanjut.`}</p></div>${FM&&STAGES.some(g=>st(g.id).best)?`<div style="margin-bottom:14px">${sendCard()}</div>`:''}<div class="mapwrap">${mapSvg(cur)}</div></section>`;
+  $$('[data-go]').forEach(el=>{
+    const act=()=>{
+      const i=+el.dataset.go;
+      if(i===5){if(allPassed())go('cert');else toast('Selesaikan kelima misi untuk membuka sertifikat.');}
+      else if(!isUnlocked(i))toast(`Lulus Misi ${i} dulu (skor minimal ${PASS}%) untuk membuka misi ini.`);
+      else go('hub',STAGES[i].id);
+    };
+    el.addEventListener('click',act);
+    el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();act();}});
+  });
+}
+
+/* hub */
+function hubView(sid){
+  const g=byId(sid),s=st(sid),boss=!!g.boss,keys=boss||(s.mat&&s.sim);
+  const stp=(act,n,title,sub,done,lock)=>`<button class="step${done?' done':''}${lock?' lock':''}" type="button" data-act="${act}"><span class="sn">${n}</span><span><b>${title}</b><small>${sub}</small></span><span class="tg">${done?'Selesai':lock?'Terkunci':'Mulai'}</span></button>`;
+  const qsub=keys?`${g.quiz.length} soal beragam. Nilai minimal ${PASS}% untuk lulus.${s.best?` Skor terbaikmu ${s.best}%.`:''}`:'Selesaikan materi dan simulasi dulu.';
+  app.innerHTML=`<section style="${stStyle(g)}">${back('Peta')}
+   <div class="hubhead"><p class="eyebrow">Misi ${g.n} · ${g.en}</p><h1>${g.name}</h1><p>${g.desc}</p></div>
+   ${g.hero()}
+   <div class="steps">${boss?'':stp('learn',1,'Materi bergambar',`${g.learn.length} kartu. Baca, lihat gambar, pahami contoh.`,s.mat,false)+stp('sim',2,`Simulasi: ${g.sim.title}`,'Pilih tanggapan yang tepat dalam situasi nyata.',s.sim,false)}${stp('quiz',boss?1:3,boss?'Tantangan akhir':'Kuis beragam',qsub,s.passed,!keys)}</div>
+   ${s.best?`<div class="card row" style="margin-top:14px;justify-content:space-between"><span>Skor terbaik <b>${s.best}%</b></span><span class="stars">${[0,1,2].map(k=>starSvg(24,k<starsOf(s.best)&&s.passed)).join('')}</span></div>`:''}
+  </section>`;
+  $('[data-back]').onclick=()=>go('map');
+  $$('.step').forEach(b=>b.onclick=()=>{
+    const a=b.dataset.act;
+    if(a==='quiz'&&!keys){toast('Dapatkan kunci Materi dan Simulasi dulu.');return;}
+    go(a,sid);
+  });
+}
+
+/* learn */
+function learnView(sid){
+  const g=byId(sid);let k=0;
+  function draw(){
+    const sl=g.learn[k],last=k===g.learn.length-1;
+    app.innerHTML=`<section style="${stStyle(g)}">${back('Kembali ke misi')}
+     <div class="card"><div class="dots">${g.learn.map((_,j)=>`<i class="${j<=k?'on':''}"></i>`).join('')}</div>
+     <p class="eyebrow" style="color:var(--st)">Kartu ${k+1} dari ${g.learn.length}</p><h2>${sl.t}</h2>
+     <div class="lbody">${sl.h()}</div>
+     <div class="nav"><button class="btn ghost" id="pv" type="button"${k===0?' disabled':''}>Sebelumnya</button><button class="btn" id="nx" type="button">${last?'Dapatkan kunci materi':'Lanjut'}</button></div></div></section>`;
+    $('[data-back]').onclick=()=>go('hub',sid);
+    $('#pv').onclick=()=>{k--;draw();window.scrollTo(0,0);};
+    $('#nx').onclick=()=>{
+      if(!last){k++;draw();window.scrollTo(0,0);return;}
+      st(sid).mat=true;save();sfx('win');toast('Kunci Materi didapat!');go('hub',sid);
+    };
+  }
+  draw();
+}
+
+/* simulation */
+function simView(sid){
+  const g=byId(sid),sim=g.sim;let i=0,sum=0;
+  app.innerHTML=`<section style="${stStyle(g)}">${back('Kembali ke misi')}<div class="card stack"><div><p class="eyebrow" style="color:var(--st)">Simulasi · Misi ${g.n}</p><h2>${sim.title}</h2></div><p style="margin:0">${sim.intro}</p><div><button class="btn" id="start" type="button">Mulai simulasi</button></div></div></section>`;
+  $('[data-back]').onclick=()=>go('hub',sid);
+  $('#start').onclick=step;
+  function step(){
+    if(i>=sim.steps.length)return done();
+    app.innerHTML=`<section style="${stStyle(g)}">${back('Keluar simulasi')}<div class="qhead"><div class="row"><span>Situasi ${i+1} dari ${sim.steps.length}</span><span class="muted">${sim.title}</span></div><div class="bar"><i style="width:${i/sim.steps.length*100}%"></i></div></div><div class="card" id="qh"></div></section>`;
+    $('[data-back]').onclick=()=>go('hub',sid);
+    window.scrollTo(0,0);
+    mountQ($('#qh'),sim.steps[i],{retry:true,last:i===sim.steps.length-1,onNext:f=>{sum+=f;i++;step();}});
+  }
+  function done(){
+    const pct=Math.round(sum/sim.steps.length*100),s=st(sid);
+    s.sim=true;s.simScore=Math.max(s.simScore,pct);save();sfx('win');renderHud();window.scrollTo(0,0);
+    app.innerHTML=`<section style="${stStyle(g)}"><div class="card result"><p class="eyebrow" style="color:var(--st)">Simulasi selesai</p><div class="big">${pct}%</div><p style="margin:0">${pct>=80?'Hebat! Kamu menanggapi hampir semua situasi dengan tepat.':'Bagus. Ulangi simulasi kapan saja untuk mengejar skor penuh.'}</p><span class="chip">Kunci Simulasi didapat</span><div class="row" style="justify-content:center"><button class="btn" id="bk" type="button">Kembali ke misi</button><button class="btn ghost" id="rt" type="button">Main lagi</button></div></div></section>`;
+    $('#bk').onclick=()=>go('hub',sid);$('#rt').onclick=()=>go('sim',sid);
+  }
+}
+
+/* quiz */
+function quizView(sid){
+  const g=byId(sid),n=g.quiz.length;let i=0,sum=0;
+  function step(){
+    if(i>=n)return fin();
+    app.innerHTML=`<section style="${stStyle(g)}">${back('Keluar kuis')}<div class="qhead"><div class="row"><span>Soal ${i+1} dari ${n}</span><span>Skor ${Math.round(sum*10)/10} poin</span></div><div class="bar"><i style="width:${i/n*100}%"></i></div></div><div class="card" id="qh"></div></section>`;
+    $('[data-back]').onclick=()=>go('hub',sid);
+    window.scrollTo(0,0);
+    mountQ($('#qh'),g.quiz[i],{retry:false,last:i===n-1,onNext:f=>{sum+=f;i++;step();}});
+  }
+  function fin(){
+    const pct=Math.round(sum/n*100),s=st(sid),first=!s.passed&&pct>=PASS;
+    s.best=Math.max(s.best,pct);if(pct>=PASS)s.passed=true;save();renderHud();window.scrollTo(0,0);
+    const ok=pct>=PASS,all=allPassed();
+    if(ok){sfx('win');if(first||all)confetti();}else sfx('bad');
+    const msg=pct>=90?'Luar biasa! Kamu menguasai misi ini.':pct>=75?'Bagus sekali!':ok?'Lulus! Terus berlatih untuk bintang lebih banyak.':`Belum lulus. Baca materi lagi, lalu coba kuis sekali lagi. Minimal ${PASS}%.`;
+    const unlock=ok&&first?(g.n<5?`Misi ${g.n+1} terbuka di peta.`:'Istana Sertifikat terbuka!'):'';
+    app.innerHTML=`<section style="${stStyle(g)}"><div class="card result"><p class="eyebrow" style="color:var(--st)">Hasil kuis · ${g.name}</p><div class="big">${pct}%</div><div class="stars">${[0,1,2].map(k=>starSvg(40,ok&&k<starsOf(pct))).join('')}</div><p style="margin:0">${msg}</p>${unlock?`<span class="chip">${unlock}</span>`:''}
+     <div class="row" style="justify-content:center">${all&&ok?'<button class="btn sun" id="ct" type="button">Lihat sertifikat</button>':''}<button class="btn" id="mp" type="button">Kembali ke peta</button><button class="btn ghost" id="rt" type="button">Ulangi kuis</button>${ok?'':'<button class="btn ghost" id="rd" type="button">Baca materi</button>'}</div></div></section>`;
+    $('#mp').onclick=()=>go('map');$('#rt').onclick=()=>go('quiz',sid);
+    if($('#ct'))$('#ct').onclick=()=>go('cert');
+    if($('#rd'))$('#rd').onclick=()=>go('hub',sid);
+  }
+  step();
+}
+
+/* certificate */
+function certView(){
+  if(!allPassed()){toast('Selesaikan kelima misi dulu.');go('map');return;}
+  const bests=STAGES.map(g=>st(g.id).best),avg=Math.round(bests.reduce((a,b)=>a+b,0)/bests.length);
+  const pred=predOf(avg);
+  if(!S.cdate){S.cdate=new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});save();}
+  app.innerHTML=`<section class="stack">
+   <div class="card stack"><div><p class="eyebrow">Petualangan selesai</p><h2>Selamat, ${esc(S.name)}!</h2></div>
+    <p style="margin:0">Cek namamu di bawah. Jika perlu, ubah dulu, karena nama ini ikut tercatat di rekap guru.${FM?'':' Ambil tangkapan layar (screenshot) sertifikat dan kirim ke gurumu.'}</p>
+    <div class="form"><div class="field"><label for="cn">Nama di sertifikat</label><input id="cn" value="${esc(S.name)}"></div><div class="field"><label for="cc">Kelas</label><input id="cc" value="${esc(S.cls||'XI')}"></div></div></div>
+   <div class="cert"><div class="cert-in">
+    <svg class="seal" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="36" fill="#d79b00"/><circle cx="40" cy="40" r="30" fill="none" stroke="#fff6cf" stroke-width="2"/><polygon points="${starPts(40,41,18)}" fill="#fff6cf"/></svg>
+    <span class="kick">Sertifikat Petualangan</span>
+    <h2>Certificate of Achievement</h2>
+    <p>Dengan bangga diberikan kepada</p>
+    <div class="nm" id="cnm">${esc(S.name)}</div>
+    <p id="ccl">Kelas ${esc(S.cls||'XI')} · SMAN 10 Pandeglang</p>
+    <p>telah menyelesaikan seluruh misi Opinion Island: Asking &amp; Giving Opinion, Agreement &amp; Disagreement, Analytical Exposition, dan Hortatory Exposition.</p>
+    <div class="scores">${STAGES.map((g,i)=>`<div><b>${g.name}</b><span>${bests[i]}% · ${starsOf(bests[i])} bintang</span></div>`).join('')}</div>
+    <p><b>Nilai akhir ${avg}</b> · Predikat: <b>${pred}</b></p>
+    <div class="sign"><div><span>${S.cdate}</span><span class="line">Tanggal</span></div><div><span class="sig">Roni Hairani</span><span class="line">Guru Bahasa Inggris</span></div></div>
+   </div></div>
+   ${FM?sendCard():copyCard()}<div class="row"><button class="btn" id="mp" type="button">Kembali ke peta</button></div></section>`;
+  $('#cn').oninput=e=>{S.name=e.target.value.trim()||S.name;$('#cnm').textContent=e.target.value.trim()||S.name;save();refreshRecap();};
+  $('#cc').oninput=e=>{S.cls=e.target.value.trim();$('#ccl').textContent=`Kelas ${S.cls||'XI'} · SMAN 10 Pandeglang`;save();refreshRecap();};
+  $('#mp').onclick=()=>go('map');
+  if($('#cpy'))$('#cpy').onclick=copyRecap;confetti();sfx('win');
+}
+
+/* ---------- start ---------- */
+$('#hmap').onclick=()=>go('map');
+$('#hsnd').onclick=()=>{S.snd=!S.snd;save();renderHud();};
+go('welcome');
+})();
+</script>
+
+</body></html>
